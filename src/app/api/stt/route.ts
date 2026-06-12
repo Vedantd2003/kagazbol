@@ -7,7 +7,13 @@ export const runtime = "nodejs";
 /** Transcribes a recorded voice question via Saaras STT (codemix mode). */
 export async function POST(request: Request) {
   try {
-    const form = await request.formData();
+    let form: FormData;
+    try {
+      form = await request.formData();
+    } catch {
+      return NextResponse.json({ error: "No audio received." }, { status: 400 });
+    }
+
     const file = form.get("audio");
     if (!(file instanceof File) || file.size === 0) {
       return NextResponse.json({ error: "No audio received." }, { status: 400 });
