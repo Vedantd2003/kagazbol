@@ -17,9 +17,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ audioUrl: dataUrl });
   } catch (err) {
     if (err instanceof SarvamApiError) {
-      return NextResponse.json({ error: "The voice service is unavailable right now." }, { status: 502 });
+      console.error("Sarvam API error in TTS:", err.status, err.body);
+      return NextResponse.json({ error: `Sarvam API error: ${err.message}` }, { status: 502 });
     }
     console.error("tts error", err);
-    return NextResponse.json({ error: "Something went wrong generating audio." }, { status: 500 });
+    return NextResponse.json({ error: `Something went wrong: ${err instanceof Error ? err.message : 'Unknown error'}` }, { status: 500 });
   }
 }

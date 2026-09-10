@@ -30,10 +30,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ transcript, languageCode });
   } catch (err) {
     if (err instanceof SarvamApiError) {
-      console.error("stt error", err.status, err.body);
-      return NextResponse.json({ error: "The voice recognition service is unavailable right now." }, { status: 502 });
+      console.error("Sarvam API error in STT:", err.status, err.body);
+      return NextResponse.json({ error: `Sarvam API error: ${err.message}` }, { status: 502 });
     }
     console.error("stt error", err);
-    return NextResponse.json({ error: "Something went wrong transcribing audio." }, { status: 500 });
+    return NextResponse.json({ error: `Something went wrong: ${err instanceof Error ? err.message : 'Unknown error'}` }, { status: 500 });
   }
 }

@@ -22,9 +22,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ ocrText });
   } catch (err) {
     if (err instanceof SarvamApiError) {
-      return NextResponse.json({ error: "Could not download document results." }, { status: 502 });
+      console.error("Sarvam API error in parse/result:", err.status, err.body);
+      return NextResponse.json({ error: `Sarvam API error: ${err.message}` }, { status: 502 });
     }
     console.error("parse/result error", err);
-    return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
+    return NextResponse.json({ error: `Something went wrong: ${err instanceof Error ? err.message : 'Unknown error'}` }, { status: 500 });
   }
 }

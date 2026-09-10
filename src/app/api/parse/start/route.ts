@@ -42,12 +42,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ jobId });
   } catch (err) {
     if (err instanceof SarvamApiError) {
+      console.error("Sarvam API error in parse/start:", err.status, err.body);
       return NextResponse.json(
-        { error: "Document parsing failed to start. Please try again." },
+        { error: `Sarvam API error: ${err.message}` },
         { status: 502 }
       );
     }
     console.error("parse/start error", err);
-    return NextResponse.json({ error: "Something went wrong starting document parsing." }, { status: 500 });
+    return NextResponse.json({ error: `Something went wrong: ${err instanceof Error ? err.message : 'Unknown error'}` }, { status: 500 });
   }
 }

@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: kagazbol
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: SARVAM_API_KEY
+        sync: false
+        description: API key for Sarvam AI services (get from https://dashboard.sarvam.ai)

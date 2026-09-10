@@ -19,9 +19,10 @@ export async function GET(request: Request) {
     });
   } catch (err) {
     if (err instanceof SarvamApiError) {
-      return NextResponse.json({ error: "Could not check document status." }, { status: 502 });
+      console.error("Sarvam API error in parse/status:", err.status, err.body);
+      return NextResponse.json({ error: `Sarvam API error: ${err.message}` }, { status: 502 });
     }
     console.error("parse/status error", err);
-    return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
+    return NextResponse.json({ error: `Something went wrong: ${err instanceof Error ? err.message : 'Unknown error'}` }, { status: 500 });
   }
 }
