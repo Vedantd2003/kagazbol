@@ -6,5 +6,5 @@ services:
     startCommand: npm start
     envVars:
       - key: SARVAM_API_KEY
-        sync: false
+        value: sk_bj8pe5hu_ZLhfqwbZtqY4PrVAVQHfTHPi
         description: API key for Sarvam AI services (get from https://dashboard.sarvam.ai)
