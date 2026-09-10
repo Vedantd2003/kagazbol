@@ -34,11 +34,6 @@ export async function chatCompletion(
       messages,
       temperature: opts.temperature ?? 0.2,
       max_tokens: opts.maxTokens ?? 1024,
-      // Both sarvam-105b and sarvam-30b are reasoning models that spend tokens
-      // on a hidden reasoning_content field before the final answer. "low"
-      // keeps that hidden step short so the real content reliably fits within
-      // max_tokens instead of being cut off (finish_reason: "length", content: null).
-      reasoning_effort: "low",
     }),
     timeoutMs: opts.timeoutMs ?? 60_000,
   });
