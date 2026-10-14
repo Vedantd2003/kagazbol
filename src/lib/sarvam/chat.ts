@@ -34,6 +34,11 @@ export async function chatCompletion(
       messages,
       temperature: opts.temperature ?? 0.2,
       max_tokens: opts.maxTokens ?? 1024,
+      // Both sarvam-105b and sarvam-30b are reasoning models that emit a
+      // hidden reasoning_content step before the final answer. "low" keeps
+      // that step short, reducing the chance of finish_reason:"length" and
+      // null content on production calls. The smoke test also passes this.
+      reasoning_effort: "low",
     }),
     timeoutMs: opts.timeoutMs ?? 60_000,
   });
