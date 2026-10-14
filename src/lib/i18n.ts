@@ -37,6 +37,13 @@ export interface UiStrings {
   you: string;
   assistant: string;
   listening: string;
+  privacyNote: string;
+  playAgain: string;
+  suggestedQ1: string;
+  suggestedQ2: string;
+  suggestedQ3: string;
+  vadMode: string;
+  pttMode: string;
 }
 
 export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
@@ -77,6 +84,13 @@ export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
     you: "You",
     assistant: "KagazBol",
     listening: "Listening...",
+    privacyNote: "Your document stays private — never stored",
+    playAgain: "Play again",
+    suggestedQ1: "How much do I owe?",
+    suggestedQ2: "When is the due date?",
+    suggestedQ3: "What do I need to do?",
+    vadMode: "Auto-listen",
+    pttMode: "Hold to speak",
   },
   "hi-IN": {
     appName: "KagazBol",
@@ -115,6 +129,13 @@ export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
     you: "आप",
     assistant: "KagazBol",
     listening: "सुन रहे हैं...",
+    privacyNote: "आपका दस्तावेज़ निजी रहता है — कभी संग्रहीत नहीं",
+    playAgain: "फिर से सुनें",
+    suggestedQ1: "कितना भरना है?",
+    suggestedQ2: "अंतिम तारीख क्या है?",
+    suggestedQ3: "मुझे क्या करना है?",
+    vadMode: "स्वतः सुनें",
+    pttMode: "दबाकर बोलें",
   },
   "mr-IN": {
     appName: "KagazBol",
@@ -153,5 +174,12 @@ export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
     you: "तुम्ही",
     assistant: "KagazBol",
     listening: "ऐकत आहे...",
+    privacyNote: "तुमचे कागदपत्र खाजगी राहते — कधीही साठवले जात नाही",
+    playAgain: "पुन्हा ऐका",
+    suggestedQ1: "किती भरायचे?",
+    suggestedQ2: "अंतिम तारीख कधी आहे?",
+    suggestedQ3: "मला काय करायचे आहे?",
+    vadMode: "स्वयं ऐका",
+    pttMode: "दाबून बोला",
   },
 };

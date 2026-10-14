@@ -11,9 +11,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "gen:fillers": "tsx scripts/gen-fillers.ts",
+    "bench:voice": "tsx scripts/bench-voice.ts"
   },
   "dependencies": {
+    "@ricky0123/vad-react": "^0.0.37",
+    "@ricky0123/vad-web": "^0.0.31",
     "framer-motion": "^12.40.0",
     "jszip": "^3.10.1",
     "next": "16.3.4",
