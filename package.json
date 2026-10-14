@@ -13,7 +13,8 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "gen:fillers": "tsx scripts/gen-fillers.ts",
-    "bench:voice": "tsx scripts/bench-voice.ts"
+    "bench:voice": "tsx scripts/bench-voice.ts",
+    "eval": "tsx eval/run.ts"
   },
   "dependencies": {
     "@ricky0123/vad-react": "^0.0.37",
