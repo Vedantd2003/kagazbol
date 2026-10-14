@@ -10,6 +10,14 @@ import type {
   SummarizeResponse,
 } from "./types";
 
+/** Thrown when the OCR polling loop exceeds its time budget. */
+export class PollingTimeoutError extends Error {
+  constructor() {
+    super("POLLING_TIMEOUT");
+    this.name = "PollingTimeoutError";
+  }
+}
+
 async function asJson<T>(res: Response): Promise<T> {
   const data = await res.json();
   if (!res.ok) {
@@ -18,12 +26,54 @@ async function asJson<T>(res: Response): Promise<T> {
   return data as T;
 }
 
-export async function startParse(file: File, language: AppLanguage): Promise<ParseStartResponse> {
-  const form = new FormData();
-  form.append("file", file);
-  form.append("language", language);
-  const res = await fetch("/api/parse/start", { method: "POST", body: form });
-  return asJson(res);
+/**
+ * Uploads the file via XHR so we can report upload progress via onProgress.
+ * Accepts an optional AbortSignal to cancel mid-upload.
+ */
+export function startParse(
+  file: File,
+  language: AppLanguage,
+  opts: { onProgress?: (pct: number) => void; signal?: AbortSignal } = {}
+): Promise<ParseStartResponse> {
+  return new Promise((resolve, reject) => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("language", language);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/parse/start");
+
+    if (opts.onProgress) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          opts.onProgress!(Math.round((e.loaded / e.total) * 100));
+        }
+      };
+    }
+
+    xhr.onload = () => {
+      try {
+        const data = JSON.parse(xhr.responseText) as ParseStartResponse & { error?: string };
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(data);
+        } else {
+          reject(new Error(data.error || `Upload failed (${xhr.status})`));
+        }
+      } catch {
+        reject(new Error(`Upload failed (${xhr.status})`));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Network error during upload"));
+    xhr.onabort = () => reject(new DOMException("Upload aborted", "AbortError"));
+
+    opts.signal?.addEventListener("abort", () => xhr.abort(), { once: true });
+    if (opts.signal?.aborted) {
+      reject(new DOMException("Upload aborted", "AbortError"));
+      return;
+    }
+
+    xhr.send(form);
+  });
 }
 
 export async function getParseStatus(jobId: string): Promise<ParseStatusResponse> {
@@ -38,12 +88,14 @@ export async function getParseResult(jobId: string): Promise<ParseResultResponse
 
 export async function summarizeDocument(
   ocrText: string,
-  language: AppLanguage
+  language: AppLanguage,
+  signal?: AbortSignal
 ): Promise<SummarizeResponse> {
   const res = await fetch("/api/summarize", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ocrText, language }),
+    signal,
   });
   return asJson(res);
 }
@@ -53,22 +105,29 @@ export async function askQuestion(
   summary: DocumentSummary,
   language: AppLanguage,
   history: ChatTurn[],
-  question: string
+  question: string,
+  signal?: AbortSignal
 ): Promise<ChatResponse> {
   const body: ChatRequest = { ocrText, summary, language, history, question };
   const res = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal,
   });
   return asJson(res);
 }
 
-export async function speakText(text: string, language: AppLanguage): Promise<string> {
+export async function speakText(
+  text: string,
+  language: AppLanguage,
+  signal?: AbortSignal
+): Promise<string> {
   const res = await fetch("/api/tts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text, language }),
+    signal,
   });
   const data = await asJson<{ audioUrl: string }>(res);
   return data.audioUrl;
@@ -82,22 +141,60 @@ export async function transcribeAudio(blob: Blob): Promise<string> {
   return data.transcript;
 }
 
-/** Polls the doc-digitization job until it reaches a terminal state. */
+/**
+ * Polls the doc-digitization job with exponential backoff until it reaches
+ * a terminal state or the time budget is exhausted.
+ *
+ * - Accepts an AbortSignal: abort the signal to cancel mid-poll.
+ * - Throws PollingTimeoutError on timeout (translate the message in the UI).
+ * - Throws DOMException("AbortError") on user-initiated cancel (ignore silently).
+ */
 export async function waitForParseCompletion(
   jobId: string,
-  onPoll?: (state: ParseStatusResponse["state"]) => void
+  opts: {
+    signal?: AbortSignal;
+    onPoll?: (state: ParseStatusResponse["state"]) => void;
+    timeoutMs?: number;
+  } = {}
 ): Promise<void> {
+  const { signal, onPoll, timeoutMs = 90_000 } = opts;
   const terminal = new Set(["Completed", "PartiallyCompleted", "Failed"]);
-  for (let i = 0; i < 40; i++) {
+  const deadline = Date.now() + timeoutMs;
+
+  let delay = 2_000;
+  const maxDelay = 10_000;
+  const backoffFactor = 1.5;
+
+  while (Date.now() < deadline) {
+    if (signal?.aborted) {
+      throw new DOMException("Polling aborted", "AbortError");
+    }
+
     const status = await getParseStatus(jobId);
     onPoll?.(status.state);
+
     if (terminal.has(status.state)) {
       if (status.state === "Failed") {
         throw new Error(status.errorMessage || "Document processing failed");
       }
       return;
     }
-    await new Promise((r) => setTimeout(r, 2500));
+
+    // Wait with exponential backoff; abort the sleep early if signal fires.
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(resolve, delay);
+      signal?.addEventListener(
+        "abort",
+        () => {
+          clearTimeout(timer);
+          reject(new DOMException("Polling aborted", "AbortError"));
+        },
+        { once: true }
+      );
+    });
+
+    delay = Math.min(delay * backoffFactor, maxDelay);
   }
-  throw new Error("Document processing timed out");
+
+  throw new PollingTimeoutError();
 }
