@@ -3,8 +3,6 @@
 > Photograph any Indian document — an electricity bill, a doctor's prescription, a bank notice,
 > a government form — and have a natural voice conversation about it in Hindi, Marathi, or English.
 
-![KagazBol summary card and voice chat](docs/screenshot-summary.png)
-
 ## The problem
 
 Hundreds of millions of Indians — parents, grandparents, first-generation digital users — regularly
@@ -16,45 +14,43 @@ KagazBol turns that moment into a self-serve experience. Take a photo, hear a tw
 language, and ask follow-up questions out loud — "kitna bharna hai aur kab tak?" — and get an answer
 spoken back, grounded only in *your* document.
 
-This is deliberately impossible on an English-only AI stack. It needs Indic OCR that handles
-Devanagari and code-mixed layouts, ASR that understands Hinglish/Marathi-English speech, an LLM that
-reasons in Indian languages, and TTS that sounds natural in Hindi and Marathi — not robotic
-transliteration. That's exactly what Sarvam AI's stack provides end-to-end.
-
 ## How it works
 
-1. **Upload/capture** a photo of a document (or pick a bundled sample).
+1. **Upload/capture** a photo of a document (or pick a bundled sample). Images are compressed
+   client-side to ≤ 2,000 px before upload.
 2. **Sarvam Document Intelligence (Vision)** OCRs the page — including Devanagari and mixed-script text.
 3. **Sarvam 105B** turns the raw OCR text into a structured summary card: document type, key amounts,
    dates, deadline, and what action is required — in the user's chosen language.
 4. **Sarvam Bulbul TTS** speaks a 2-line summary aloud immediately.
-5. The user taps the mic and asks follow-up questions by voice. **Sarvam Saaras STT** transcribes
-   (code-mixed Hindi/Marathi/English), **Sarvam 30B** answers — grounded strictly in the document — and
-   **Bulbul TTS** speaks the reply. Conversation history is kept for the session.
-6. A language switcher (English / हिंदी / मराठी) changes UI labels, summary language, and TTS voice.
+5. The user taps the mic (or speaks freely if auto-listen mode is on). **Sarvam Saaras STT**
+   transcribes (code-mixed Hindi/Marathi/English), **Sarvam 30B** answers — grounded strictly in the
+   document via a streaming pipeline — and **Bulbul TTS** speaks the reply sentence-by-sentence.
+6. The user can interrupt (barge-in) at any time; the app stops speaking and starts listening.
+7. A language switcher (English / हिंदी / मराठी) re-summarizes in the new language on the fly.
 
 ## Architecture
 
 ```mermaid
 flowchart TD
     subgraph Browser
-        A[Upload / Capture Photo] --> B[Summary Card + Autoplay TTS]
-        B --> C[Mic Button]
-        C --> D[Voice Q&A + History]
+        A[Upload / Capture Photo] -->|compress| B[Summary Card + Autoplay TTS]
+        B --> C[Voice Orb / Mic]
+        C --> D[Streaming Voice Q&A]
     end
 
-    subgraph "Next.js API Routes (server-side, key never leaves server)"
+    subgraph "Next.js API Routes (key never reaches browser)"
         P1["/api/parse/start\ncreate job + upload + start"]
-        P2["/api/parse/status\npoll job"]
-        P3["/api/parse/result\ndownload + extract OCR text"]
+        P2["/api/parse/status\npoll (backoff)"]
+        P3["/api/parse/result\ndownload + extract OCR"]
         S["/api/summarize\nSarvam 105B → structured JSON"]
-        CH["/api/chat\nSarvam 30B, grounded follow-ups"]
+        CH["/api/chat\nnon-streaming fallback"]
+        CS["/api/chat/stream\nSSE streaming (30B)"]
         T["/api/tts\nBulbul TTS"]
         ST["/api/stt\nSaaras STT (codemix)"]
     end
 
     subgraph "Sarvam AI"
-        DI[Document Intelligence / Vision]
+        DI[Document Intelligence]
         L105[Sarvam 105B]
         L30[Sarvam 30B]
         TTS[Bulbul TTS]
@@ -65,112 +61,140 @@ flowchart TD
     P1 --> P2 --> DI
     P2 --> P3 --> DI
     P3 --> S --> L105
-    S --> B
-    B --> T --> TTS
+    S --> B --> T --> TTS
     D --> ST --> STT
-    D --> CH --> L30
-    CH --> T
+    D --> CS --> L30
+    CS -->|sentence chunks| T
 ```
 
-## Which Sarvam model is used where, and why
+## Model routing
 
 | Capability | Model | Why |
-| --- | --- | --- |
-| Document OCR | **Sarvam Document Intelligence (Vision)** | Only model in the stack that reliably reads Devanagari + mixed-script Indian documents and preserves table/field structure. |
-| One-shot document summary | **Sarvam 105B** | Accuracy-critical, called once per document — worth the extra latency to get amounts/dates/deadlines right and to write a fluent native-language summary. |
-| Conversational follow-ups | **Sarvam 30B** | Latency-critical, called many times per session — a smaller model keeps the voice loop snappy without sacrificing grounded, in-language answers. |
-| Voice replies | **Bulbul TTS** | Natural-sounding Hindi/Marathi/English voices, not robotic TTS. |
-| Voice questions | **Saaras STT (codemix mode)** | Transcribes Hinglish/Marathi-English speech the way people actually talk, preserving English words in Latin script. |
+|---|---|---|
+| Document OCR | **Sarvam Document Intelligence** | Reads Devanagari + mixed-script reliably |
+| One-shot document summary | **Sarvam 105B** | Called once; accuracy on amounts/dates is worth the latency |
+| Conversational follow-ups | **Sarvam 30B** | Called many times; tightly grounded prompt keeps it fast |
+| Voice replies | **Bulbul v3 TTS** | Natural Hindi/Marathi/English voices |
+| Voice questions | **Saaras v3 STT (codemix)** | Transcribes Hinglish/Marathi-English as people actually speak |
 
-Both chat calls log their latency to the server console (`[model-routing] ... Xms`). Note that
-both `sarvam-105b` and `sarvam-30b` are *reasoning* models — they spend part of their token
-budget on a hidden `reasoning_content` step before the final answer, so per-call latency varies
-quite a bit (single-digit to tens of seconds). `chatCompletion` passes `reasoning_effort: "low"`
-to keep that step short. The routing decision is driven less by a guaranteed per-call speed
-delta and more by **call frequency and accuracy needs**: 105B runs once per document (worth
-spending more tokens to get amounts/dates right), while 30B runs on every follow-up in a live
-voice session (a smaller model with a tightly grounded prompt keeps the *typical* case snappy).
+Both chat models are reasoning models — they emit a hidden `reasoning_content` step before the final
+answer. `reasoning_effort: "low"` is sent to keep that step short. The streaming route (`/api/chat/stream`)
+filters out `reasoning_content` entirely; the browser only sees final-answer content deltas.
 
 ## Quickstart
 
 ```bash
-git clone <this-repo>
+git clone https://github.com/Vedantd2003/kagazbol
 cd kagazbol
-cp .env.example .env   # then add your SARVAM_API_KEY
+cp .env.example .env   # add your SARVAM_API_KEY
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Try a sample document or upload/photograph your own.
+Open [http://localhost:3000](http://localhost:3000).
 
-### Verify your API key works
-
-Before relying on the app, run the smoke test against the live Sarvam API:
+### Verify your API key
 
 ```bash
 npm run smoke-test
 ```
 
-This hits chat completions (105B + 30B), TTS, STT, and (if `public/samples/electricity-bill.png`
-exists) the full Document Intelligence job flow, and prints status codes/latencies for each.
+Hits chat completions (105B + 30B), TTS, STT, and the full Document Intelligence job flow.
 
-> **Note on `sarvam-105b`/`sarvam-30b`:** these are reasoning models that emit a hidden
-> `reasoning_content` field before the final answer, and that hidden step varies a lot in
-> length. The app sends `reasoning_effort: "low"` and a generous `max_tokens` (4096) to keep
-> this reliable, but on rare occasions a smoke-test call may still come back with
-> `finish_reason: "length"` and `content: null` — that's the live model, not a bug in this
-> repo. The app's API routes handle this gracefully (the summary parser falls back to a
-> partial summary, and `/api/chat` returns a clear error so the UI can prompt a retry).
+## Scripts
+
+| Script | Purpose |
+|---|---|
+| `npm run dev` | Start dev server |
+| `npm run build` | Production build |
+| `npm run lint` | ESLint |
+| `npm run test` | Vitest unit tests |
+| `npm run test:e2e` | Playwright e2e (requires `npx playwright install chromium`) |
+| `npm run smoke-test` | Live API smoke test (requires SARVAM_API_KEY) |
+| `npm run gen:fillers` | Generate filler audio files into public/audio/fillers/ (requires SARVAM_API_KEY) |
+| `npm run bench:voice` | Measure streaming vs non-streaming voice latency, writes docs/VOICE_LATENCY.md |
+| `npm run eval` | Run accuracy evaluation on eval/data/, writes docs/EVAL.md |
+
+## Evaluation
+
+See [docs/EVAL.md](docs/EVAL.md) for the evaluation framework.
+
+Run `npm run eval` with real masked documents (see [eval/README.md](eval/README.md)) to populate the
+results table. Synthetic samples in `eval/samples/` are scaffolding only and excluded from published
+accuracy numbers.
+
+## Voice latency benchmark
+
+See [docs/VOICE_LATENCY.md](docs/VOICE_LATENCY.md).
+
+Run `npm run bench:voice` with a valid `SARVAM_API_KEY` to measure streaming vs non-streaming
+latency on your deployment. No numbers are hardcoded — the file is generated by the script.
+
+## Deploying
+
+### Render (primary — `render.yaml` already configured)
+
+1. Connect the repo to Render.
+2. Set `SARVAM_API_KEY` in the Render dashboard (not in render.yaml — never commit the key).
+3. Push to main; Render builds and deploys automatically.
+
+### Vercel (alternative)
+
+- Set `SARVAM_API_KEY` as an environment variable in the Vercel project.
+- The Hobby plan's 10 s per-invocation timeout is tight for the 105B summarize call; Pro (60 s) is safe.
+- All routes use `runtime = "nodejs"` and are compatible with Vercel serverless.
+
+## Design
+
+See [docs/DESIGN.md](docs/DESIGN.md) for the full design rationale (Direction B: Indigo & Mist).
+
+The UI targets elderly and first-generation digital users first:
+- 18 px base font, 20 px for Devanagari
+- ≥ 48 px touch targets (camera button is 72 px)
+- Light and dark mode via `prefers-color-scheme`
+- Animations respect `prefers-reduced-motion`
+- WCAG AA contrast throughout
+
+## Privacy
+
+No database, no auth, no server-side document storage. Every document is processed in memory
+for a single session and never persisted. The API key never reaches the browser.
 
 ## Project structure
 
 ```
 src/
   app/
-    page.tsx              # main UI: upload -> summary -> voice chat
+    page.tsx              # main UI orchestrator
     api/
-      parse/start/        # create OCR job, upload image, start processing
-      parse/status/       # poll job status
-      parse/result/       # download + extract OCR text
-      summarize/          # Sarvam 105B -> structured summary JSON
-      chat/                # Sarvam 30B -> grounded follow-up answers
-      tts/                 # Bulbul text-to-speech
-      stt/                 # Saaras speech-to-text
-  components/              # UploadCard, SummaryCard, ChatPanel, MicButton, ...
-  hooks/                   # useAudioRecorder, useAudioPlayer
+      parse/start|status|result/  # OCR job lifecycle
+      summarize/          # Sarvam 105B → structured summary
+      chat/               # non-streaming fallback
+      chat/stream/        # SSE streaming (Sarvam 30B)
+      tts/                # Bulbul text-to-speech
+      stt/                # Saaras speech-to-text
+  components/             # UploadCard, SummaryCard, ChatPanel, VoiceOrb, ...
+  hooks/                  # useAudioPlayer, useAudioRecorder, useVAD, useStreamingChat
   lib/
-    sarvam/                # typed Sarvam API clients (chat, tts, stt, doc intelligence)
-    prompts.ts             # summary + grounded-chat system prompts
-    i18n.ts                # UI strings for en-IN / hi-IN / mr-IN
-public/samples/            # bundled fictional sample documents
+    sarvam/               # typed Sarvam API clients
+    apiClient.ts          # browser-side fetch with AbortSignal + XHR progress
+    compressImage.ts      # client-side canvas compression
+    sentenceSplitter.ts   # Devanagari-aware sentence boundary detection
+    fillerAudio.ts        # filler audio playback during reasoning
+    prompts.ts            # LLM system prompts
+    i18n.ts               # UI strings: en-IN / hi-IN / mr-IN
+eval/
+  schema/                 # JSON schema for eval labels
+  samples/                # 3 synthetic sample documents (not used for accuracy)
+  metrics.ts              # amount/date normalization, fuzzy matching
+  run.ts                  # eval runner
 scripts/
-  smoke_test.ts            # live API smoke test (Phase 1 verification)
-  generate-samples.ts       # regenerates the sample document images
+  smoke_test.ts           # live API smoke test
+  gen-fillers.ts          # generate filler TTS audio files
+  bench-voice.ts          # streaming vs non-streaming latency benchmark
 docs/
-  demo-script.md
-  blog-draft.md
-  submission-checklist.md
+  ANALYSIS.md             # Phase 0 architecture analysis and bug list
+  DESIGN.md               # design directions and rationale
+  EVAL.md                 # evaluation results template
+  VOICE_LATENCY.md        # voice latency benchmark results
 ```
-
-## Deploying to Vercel
-
-- Set `SARVAM_API_KEY` as an environment variable in your Vercel project.
-- Document Intelligence is an **async, polled job** (typically 15-60s). The browser polls
-  `/api/parse/status` directly, so no single serverless function call needs to stay open that long —
-  but make sure your plan's per-invocation timeout covers a single OCR/summarize call comfortably
-  (Vercel Hobby's 10s default can be tight for the 105B summary call; Pro's 60s is safe).
-- TTS responses are returned as base64 data URLs. Bulbul caps input at 2,500 characters, well within
-  what spoken-style replies need, so payload sizes stay small.
-- No database, auth, or persistent storage — each browser session holds its own document and
-  conversation state in memory.
-
-## What you could build on top
-
-- **WhatsApp bot version** — same pipeline behind the WhatsApp Business API, so users never need to
-  open an app.
-- **Pension/scheme form filler** — extend the summary step to detect required fields and help users
-  fill out government forms by voice.
-- **Pharmacy prescription checker** — cross-reference extracted medicine names with a drug database
-  and flag interactions or generic alternatives.
-- **Village kiosk mode** — a shared-device mode with larger touch targets and a "read it again" button
-  for low-literacy users.
