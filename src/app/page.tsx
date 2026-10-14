@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { UploadCard } from "@/components/UploadCard";
@@ -11,7 +11,7 @@ import type { MicStatus } from "@/components/MicButton";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { UI_STRINGS } from "@/lib/i18n";
-import type { AppLanguage } from "@/lib/sarvam/config";
+import { LANGUAGE_CONFIG, type AppLanguage } from "@/lib/languages";
 import type { ChatTurn, DocumentSummary } from "@/lib/types";
 import { compressImage } from "@/lib/compressImage";
 import {
@@ -51,6 +51,14 @@ export default function Home() {
   const player = useAudioPlayer();
 
   const strings = UI_STRINGS[language];
+
+  // Keep <html lang> in sync with the selected language so:
+  // 1. CSS :lang(hi) / :lang(mr) font-size rules fire correctly
+  // 2. Screen readers announce Devanagari text in the right language
+  // 3. Browser spell-check and hyphenation use the correct rules
+  useEffect(() => {
+    document.documentElement.lang = LANGUAGE_CONFIG[language].htmlLang;
+  }, [language]);
 
   const runPipeline = useCallback(
     async (file: File, lang: AppLanguage) => {
@@ -184,7 +192,9 @@ export default function Home() {
       const blob = await recorder.stop();
       setMicStatus("transcribing");
       try {
-        const transcript = await transcribeAudio(blob);
+        // Pass the current language so Saaras STT can bias toward the correct
+        // script (Devanagari for hi-IN / mr-IN).
+        const transcript = await transcribeAudio(blob, language);
         setLiveTranscript(transcript);
 
         if (!ocrText || !summary) throw new Error(strings.errorGeneric);

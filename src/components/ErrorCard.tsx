@@ -39,11 +39,7 @@ export function ErrorCard({
             onClick={onRetry}
             className="mt-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-transform active:scale-95"
           >
-            {strings.errorGeneric.includes("try")
-              ? "Try again"
-              : strings.errorGeneric.includes("कोशिश")
-                ? "फिर से कोशिश"
-                : "पुन्हा प्रयत्न"}
+            {strings.tryAgain}
           </button>
         </div>
       </div>

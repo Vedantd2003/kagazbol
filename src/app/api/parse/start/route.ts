@@ -5,7 +5,7 @@ import {
   uploadFileToUrl,
   startDocJob,
 } from "@/lib/sarvam/docIntelligence";
-import { DOC_INTELLIGENCE_LANGUAGE, type AppLanguage } from "@/lib/sarvam/config";
+import { LANGUAGE_CONFIG, type AppLanguage } from "@/lib/languages";
 import { SarvamApiError } from "@/lib/sarvam/client";
 
 export const runtime = "nodejs";
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const docLanguage = DOC_INTELLIGENCE_LANGUAGE[language] ?? "en-IN";
+    const docLanguage = LANGUAGE_CONFIG[language]?.docIntelligenceCode ?? "en-IN";
     const jobId = await createDocJob(docLanguage);
 
     const ext = (file.name.split(".").pop() || "jpg").toLowerCase();

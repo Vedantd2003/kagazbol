@@ -1,6 +1,6 @@
 "use client";
 
-import { SUPPORTED_LANGUAGES, type AppLanguage } from "@/lib/sarvam/config";
+import { SUPPORTED_LANGUAGES, type AppLanguage } from "@/lib/languages";
 
 export function LanguageSwitcher({
   value,

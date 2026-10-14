@@ -1,4 +1,4 @@
-import type { AppLanguage } from "./sarvam/config";
+import type { AppLanguage } from "./languages";
 
 export interface UiStrings {
   appName: string;
@@ -44,6 +44,8 @@ export interface UiStrings {
   suggestedQ3: string;
   vadMode: string;
   pttMode: string;
+  /** Label for the "Try again" button in ErrorCard */
+  tryAgain: string;
 }
 
 export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
@@ -91,6 +93,7 @@ export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
     suggestedQ3: "What do I need to do?",
     vadMode: "Auto-listen",
     pttMode: "Hold to speak",
+    tryAgain: "Try again",
   },
   "hi-IN": {
     appName: "KagazBol",
@@ -136,6 +139,7 @@ export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
     suggestedQ3: "मुझे क्या करना है?",
     vadMode: "स्वतः सुनें",
     pttMode: "दबाकर बोलें",
+    tryAgain: "फिर से कोशिश करें",
   },
   "mr-IN": {
     appName: "KagazBol",
@@ -181,5 +185,6 @@ export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
     suggestedQ3: "मला काय करायचे आहे?",
     vadMode: "स्वयं ऐका",
     pttMode: "दाबून बोला",
+    tryAgain: "पुन्हा प्रयत्न करा",
   },
 };

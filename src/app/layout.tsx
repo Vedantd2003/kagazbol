@@ -26,8 +26,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
+    // lang defaults to "en"; the client updates it via useLangSync in page.tsx
+    // whenever the user switches language. This keeps the HTML attribute in sync
+    // with the CSS :lang() pseudo-class selectors and screen-reader pronunciation.
     <html
-      lang="hi"
+      lang="en"
       className={`${notoSans.variable} ${notoDevanagari.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">

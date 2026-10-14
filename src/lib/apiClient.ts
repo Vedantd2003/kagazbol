@@ -133,9 +133,12 @@ export async function speakText(
   return data.audioUrl;
 }
 
-export async function transcribeAudio(blob: Blob): Promise<string> {
+export async function transcribeAudio(blob: Blob, language: AppLanguage = "en-IN"): Promise<string> {
   const form = new FormData();
   form.append("audio", blob, "question.webm");
+  // Send language hint so Saaras STT can bias toward the correct script
+  // (Devanagari for hi-IN / mr-IN) and improve transcription accuracy.
+  form.append("language", language);
   const res = await fetch("/api/stt", { method: "POST", body: form });
   const data = await asJson<{ transcript: string }>(res);
   return data.transcript;

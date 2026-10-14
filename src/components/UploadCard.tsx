@@ -3,8 +3,7 @@
 import { useRef } from "react";
 import { motion } from "framer-motion";
 import type { UiStrings } from "@/lib/i18n";
-import type { AppLanguage } from "@/lib/sarvam/config";
-import { SUPPORTED_LANGUAGES } from "@/lib/sarvam/config";
+import { SUPPORTED_LANGUAGES, type AppLanguage } from "@/lib/languages";
 
 interface SampleDoc {
   id: string;
@@ -50,8 +49,7 @@ export function UploadCard({
           <button
             key={lang.code}
             type="button"
-            role="button"
-            aria-label={`Select ${lang.label}`}
+            aria-label={`${lang.label} — ${lang.nativeLabel}`}
             aria-pressed={language === lang.code}
             onClick={() => onLanguageChange(lang.code)}
             className={`flex-1 rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
@@ -69,8 +67,6 @@ export function UploadCard({
       <div className="mt-4 flex flex-col gap-3">
         <button
           type="button"
-          role="button"
-          aria-label={strings.takePhoto}
           onClick={() => cameraInputRef.current?.click()}
           className="flex min-h-[72px] w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-sm transition-transform active:scale-95"
         >
@@ -94,8 +90,6 @@ export function UploadCard({
 
         <button
           type="button"
-          role="button"
-          aria-label={strings.chooseFile}
           onClick={() => fileInputRef.current?.click()}
           className="flex min-h-[56px] w-full items-center justify-center rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold text-foreground transition-transform active:scale-95"
         >
@@ -128,6 +122,7 @@ export function UploadCard({
         capture="environment"
         className="hidden"
         aria-hidden="true"
+        tabIndex={-1}
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) onFileSelected(file);
@@ -140,6 +135,7 @@ export function UploadCard({
         accept="image/*"
         className="hidden"
         aria-hidden="true"
+        tabIndex={-1}
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) onFileSelected(file);
@@ -155,8 +151,7 @@ export function UploadCard({
             <button
               key={sample.id}
               type="button"
-              role="button"
-              aria-label={`Try sample: ${strings[sample.labelKey]}`}
+              aria-label={`${strings.trySample}: ${strings[sample.labelKey]}`}
               onClick={() => onSampleSelected(sample)}
               className="group flex flex-col items-center gap-1.5 rounded-xl border border-border bg-muted p-2 transition-colors hover:border-primary"
             >

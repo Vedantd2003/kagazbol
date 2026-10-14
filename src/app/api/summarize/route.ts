@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
     console.log(`[model-routing] summarize via ${result.model}: ${result.latencyMs}ms`);
 
-    const summary = parseSummaryResponse(result.text);
+    const summary = parseSummaryResponse(result.text, body.language);
     const response: SummarizeResponse = {
       summary,
       latencyMs: result.latencyMs,
