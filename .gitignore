@@ -48,3 +48,4 @@ next-env.d.ts
 eval/data/
 eval/cache/
 eval/results/
+package-lock.json
