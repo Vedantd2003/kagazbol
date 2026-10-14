@@ -65,10 +65,11 @@ export function SummaryCard({
         <button
           type="button"
           onClick={() => setExpanded((e) => !e)}
+          aria-expanded={expanded}
           className="mt-4 flex w-full items-center justify-between rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
           {strings.fullDetails}
-          <motion.span animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
+          <motion.span animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }} aria-hidden="true">
             ▾
           </motion.span>
         </button>

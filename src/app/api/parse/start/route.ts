@@ -28,6 +28,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Uploaded file is empty" }, { status: 400 });
     }
 
+    const ALLOWED_MIME = new Set([
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/webp",
+      "image/heic",
+      "image/heif",
+    ]);
+    if (file.type && !ALLOWED_MIME.has(file.type.toLowerCase())) {
+      return NextResponse.json(
+        { error: "Only image files are supported (JPEG, PNG, WebP, HEIC)." },
+        { status: 400 }
+      );
+    }
+
     const docLanguage = DOC_INTELLIGENCE_LANGUAGE[language] ?? "en-IN";
     const jobId = await createDocJob(docLanguage);
 
