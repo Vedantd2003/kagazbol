@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Noto_Sans, Noto_Sans_Devanagari } from "next/font/google";
+import { Noto_Sans, Noto_Sans_Devanagari, Rozha_One } from "next/font/google";
 import "./globals.css";
 
 const notoSans = Noto_Sans({
@@ -11,6 +11,13 @@ const notoSans = Noto_Sans({
 const notoDevanagari = Noto_Sans_Devanagari({
   subsets: ["devanagari"],
   variable: "--font-devanagari",
+  display: "swap",
+});
+
+const rozhaOne = Rozha_One({
+  weight: "400",
+  subsets: ["latin", "devanagari"],
+  variable: "--font-display",
   display: "swap",
 });
 
@@ -31,7 +38,7 @@ export default function RootLayout({
     // with the CSS :lang() pseudo-class selectors and screen-reader pronunciation.
     <html
       lang="en"
-      className={`${notoSans.variable} ${notoDevanagari.variable} h-full antialiased`}
+      className={`${notoSans.variable} ${notoDevanagari.variable} ${rozhaOne.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}

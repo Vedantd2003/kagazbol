@@ -1,61 +1,310 @@
 @import "tailwindcss";
 
-/* Direction B: Indigo & Mist */
+/* ─────────────────────────────────────────────────────────────────────────────
+   Direction A: "Aged Paper"
+   Warm cream-and-ink palette inspired by Indian physical documents.
+───────────────────────────────────────────────────────────────────────────── */
+
 :root {
-  --background: #F8F7FF;
-  --foreground: #1E1B4B;
+  /* Surfaces */
+  --background: #FAF7F2;
+  --background-subtle: #F0EBE1;
+  --foreground: #1A1209;
   --card: #FFFFFF;
-  --primary: #3730A3;
-  --primary-foreground: #FFFFFF;
-  --accent: #F59E0B;
-  --muted: #EEF2FF;
-  --muted-foreground: #6B7280;
-  --border: #E0E7FF;
-  --warning: #DC2626;
+  --card-raised: #F7F3ED;
+
+  /* Brand */
+  --primary: #1E1440;
+  --primary-foreground: #FAF7F2;
+  --accent: #D97706;
+  --accent-foreground: #FFFFFF;
+
+  /* UI neutrals */
+  --muted: #E8E0D4;
+  --muted-foreground: #7C6F63;
+  --border: #D4C9BB;
+  --border-subtle: #EAE4DC;
+
+  /* Semantic */
+  --warning: #B91C1C;
+  --warning-bg: #FEF2F2;
+  --success: #166534;
+  --success-bg: #F0FDF4;
+
+  /* Orb states */
+  --orb-idle: #D97706;
+  --orb-listen: #2563EB;
+  --orb-think: #7C3AED;
+  --orb-speak: #16A34A;
+
+  /* Z-index scale */
+  --z-base: 0;
+  --z-raised: 10;
+  --z-dropdown: 100;
+  --z-overlay: 200;
+  --z-modal: 300;
+  --z-toast: 400;
+  --z-debug: 999;
+
+  /* Radius scale */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+
+  /* Shadow scale */
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  --shadow-md: 0 4px 12px 0 rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 12px 32px 0 rgb(0 0 0 / 0.10), 0 4px 8px -4px rgb(0 0 0 / 0.06);
+  --shadow-orb: 0 0 40px 8px rgb(217 119 6 / 0.25);
+
+  /* Spacing tokens */
+  --space-touch: 48px; /* WCAG minimum touch target */
+
+  /* Fluid type scale */
+  --text-xs:   clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+  --text-sm:   clamp(0.875rem, 0.8rem + 0.375vw, 1rem);
+  --text-base: clamp(1rem, 0.9rem + 0.5vw, 1.125rem);
+  --text-lg:   clamp(1.125rem, 1rem + 0.625vw, 1.25rem);
+  --text-xl:   clamp(1.25rem, 1.1rem + 0.75vw, 1.5rem);
+  --text-2xl:  clamp(1.5rem, 1.3rem + 1vw, 2rem);
+  --text-3xl:  clamp(1.875rem, 1.5rem + 1.875vw, 2.5rem);
+  --text-4xl:  clamp(2.25rem, 1.8rem + 2.25vw, 3rem);
+}
+
+/* ── Dark mode ───────────────────────────────────────────────────────────── */
+
+[data-theme="dark"] {
+  --background: #1A1209;
+  --background-subtle: #221810;
+  --foreground: #F5EDD8;
+  --card: #2A1E12;
+  --card-raised: #321F0F;
+  --primary: #F0C060;
+  --primary-foreground: #1A1209;
+  --accent: #FBBF24;
+  --accent-foreground: #1A1209;
+  --muted: #3A2A1A;
+  --muted-foreground: #A8947A;
+  --border: #4A3520;
+  --border-subtle: #3A2A1A;
+  --warning: #FCA5A5;
+  --warning-bg: #7F1D1D;
+  --success: #86EFAC;
+  --success-bg: #14532D;
+  --shadow-orb: 0 0 40px 8px rgb(251 191 36 / 0.25);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #1A1830;
-    --foreground: #F1F0FF;
-    --card: #252342;
-    --primary: #818CF8;
-    --primary-foreground: #1A1830;
+    --background: #1A1209;
+    --background-subtle: #221810;
+    --foreground: #F5EDD8;
+    --card: #2A1E12;
+    --card-raised: #321F0F;
+    --primary: #F0C060;
+    --primary-foreground: #1A1209;
     --accent: #FBBF24;
-    --muted: #2E2A52;
-    --muted-foreground: #9CA3AF;
-    --border: #3D3870;
-    --warning: #F87171;
+    --accent-foreground: #1A1209;
+    --muted: #3A2A1A;
+    --muted-foreground: #A8947A;
+    --border: #4A3520;
+    --border-subtle: #3A2A1A;
+    --warning: #FCA5A5;
+    --warning-bg: #7F1D1D;
+    --success: #86EFAC;
+    --success-bg: #14532D;
+    --shadow-orb: 0 0 40px 8px rgb(251 191 36 / 0.25);
   }
 }
 
+/* ── Tailwind 4 theme mapping ─────────────────────────────────────────────── */
+
 @theme inline {
   --color-background: var(--background);
+  --color-background-subtle: var(--background-subtle);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
+  --color-card-raised: var(--card-raised);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
   --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-orb-idle: var(--orb-idle);
+  --color-orb-listen: var(--orb-listen);
+  --color-orb-think: var(--orb-think);
+  --color-orb-speak: var(--orb-speak);
   --font-sans: var(--font-sans);
   --font-devanagari: var(--font-devanagari);
+  --font-display: var(--font-display);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-full: var(--radius-full);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-orb: var(--shadow-orb);
 }
+
+/* ── Base styles ──────────────────────────────────────────────────────────── */
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), var(--font-devanagari), system-ui, sans-serif;
-  font-size: 18px; /* 18px base for mobile readability */
+  font-size: 18px;
+  line-height: 1.7;
 }
 
-/* Devanagari text gets slightly larger for legibility */
+/* Extra line-height for Devanagari matras and ligatures */
 :lang(hi),
 :lang(mr) {
+  font-family: var(--font-devanagari), var(--font-display), system-ui, sans-serif;
   font-size: 1.05em;
+  line-height: 1.85;
 }
+
+/* ── Paper texture overlay ───────────────────────────────────────────────── */
+
+html::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+  opacity: 0.6;
+  mix-blend-mode: multiply;
+}
+
+@media (prefers-color-scheme: dark) {
+  html::before {
+    mix-blend-mode: overlay;
+    opacity: 0.3;
+  }
+}
+
+/* ── Focus styles ─────────────────────────────────────────────────────────── */
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Keyframe animations ──────────────────────────────────────────────────── */
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgb(217 119 6 / 0.45);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 18px rgb(217 119 6 / 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgb(217 119 6 / 0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ink-reveal {
+  from {
+    clip-path: inset(0 100% 0 0);
+    opacity: 0;
+  }
+  to {
+    clip-path: inset(0 0% 0 0);
+    opacity: 1;
+  }
+}
+
+@keyframes float-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes orb-breathe {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 0.88;
+  }
+}
+
+/* ── Utility animation classes ───────────────────────────────────────────── */
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--muted) 0%,
+    var(--background-subtle) 50%,
+    var(--muted) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+.animate-spin {
+  animation: spin 0.8s linear infinite;
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-orb-breathe {
+  animation: orb-breathe 3s ease-in-out infinite;
+}
+
+.animate-ink-reveal {
+  animation: ink-reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-float-up {
+  animation: float-up 0.48s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ── Reduced motion ───────────────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -64,32 +313,6 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
-}
-
-/* Focus styles */
-:focus-visible {
-  outline: 3px solid var(--primary);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-/* Pulse ring animation for VoiceOrb idle state */
-@keyframes pulse-ring {
-  0% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(55, 48, 163, 0.45);
-  }
-  70% {
-    transform: scale(1);
-    box-shadow: 0 0 0 18px rgba(55, 48, 163, 0);
-  }
-  100% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(55, 48, 163, 0);
-  }
-}
-
-.animate-pulse-ring {
-  animation: pulse-ring 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
