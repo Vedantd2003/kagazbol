@@ -1,18 +1,29 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export type RecorderState = "idle" | "recording" | "stopping";
 
 /**
  * Wraps MediaRecorder for short voice-question capture. Returns a Blob on
  * stop, ready to send to /api/stt.
+ *
+ * The mic stream is stopped on component unmount, preventing the browser
+ * mic-active indicator from persisting after navigation or errors.
  */
 export function useAudioRecorder() {
   const [state, setState] = useState<RecorderState>("idle");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
+
+  // Stop the mic stream when the component unmounts so the browser
+  // microphone-active indicator doesn't stay on indefinitely.
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
+  }, []);
 
   const start = useCallback(async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
