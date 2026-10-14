@@ -3,19 +3,21 @@ import { Noto_Sans, Noto_Sans_Devanagari } from "next/font/google";
 import "./globals.css";
 
 const notoSans = Noto_Sans({
-  variable: "--font-sans",
   subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
 });
 
 const notoDevanagari = Noto_Sans_Devanagari({
-  variable: "--font-devanagari",
   subsets: ["devanagari"],
+  variable: "--font-devanagari",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "KagazBol — Talk to any Indian document",
   description:
-    "Photograph any Indian document and have a natural voice conversation about it in Hindi, Marathi, or English.",
+    "Photograph any Indian document and have a voice conversation about it in Hindi, Marathi, or English.",
 };
 
 export default function RootLayout({
@@ -24,8 +26,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${notoSans.variable} ${notoDevanagari.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-background text-foreground">{children}</body>
+    <html
+      lang="hi"
+      className={`${notoSans.variable} ${notoDevanagari.variable} h-full antialiased`}
+    >
+      <body className="min-h-full flex flex-col bg-background text-foreground">
+        {children}
+      </body>
     </html>
   );
 }

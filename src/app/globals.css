@@ -1,15 +1,32 @@
 @import "tailwindcss";
 
+/* Direction B: Indigo & Mist */
 :root {
-  --background: #faf6f0;
-  --foreground: #1f2937;
-  --card: #ffffff;
-  --primary: #0f6e5e;
-  --primary-foreground: #ffffff;
-  --accent: #f4a340;
-  --muted: #f1ece3;
-  --muted-foreground: #6b7280;
-  --border: #e8e1d4;
+  --background: #F8F7FF;
+  --foreground: #1E1B4B;
+  --card: #FFFFFF;
+  --primary: #3730A3;
+  --primary-foreground: #FFFFFF;
+  --accent: #F59E0B;
+  --muted: #EEF2FF;
+  --muted-foreground: #6B7280;
+  --border: #E0E7FF;
+  --warning: #DC2626;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #1A1830;
+    --foreground: #F1F0FF;
+    --card: #252342;
+    --primary: #818CF8;
+    --primary-foreground: #1A1830;
+    --accent: #FBBF24;
+    --muted: #2E2A52;
+    --muted-foreground: #9CA3AF;
+    --border: #3D3870;
+    --warning: #F87171;
+  }
 }
 
 @theme inline {
@@ -22,6 +39,7 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
+  --color-warning: var(--warning);
   --font-sans: var(--font-sans);
   --font-devanagari: var(--font-devanagari);
 }
@@ -29,21 +47,46 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), var(--font-devanagari), Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), var(--font-devanagari), system-ui, sans-serif;
+  font-size: 18px; /* 18px base for mobile readability */
 }
 
+/* Devanagari text gets slightly larger for legibility */
+:lang(hi),
+:lang(mr) {
+  font-size: 1.05em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Pulse ring animation for VoiceOrb idle state */
 @keyframes pulse-ring {
   0% {
     transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(15, 110, 94, 0.45);
+    box-shadow: 0 0 0 0 rgba(55, 48, 163, 0.45);
   }
   70% {
     transform: scale(1);
-    box-shadow: 0 0 0 18px rgba(15, 110, 94, 0);
+    box-shadow: 0 0 0 18px rgba(55, 48, 163, 0);
   }
   100% {
     transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(15, 110, 94, 0);
+    box-shadow: 0 0 0 0 rgba(55, 48, 163, 0);
   }
 }
 

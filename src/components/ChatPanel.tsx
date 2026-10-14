@@ -20,6 +20,7 @@ export function ChatPanel({
   liveTranscript,
   errorMessage,
   onMicClick,
+  onSuggestedQuestion,
 }: {
   strings: UiStrings;
   history: ChatTurn[];
@@ -27,7 +28,10 @@ export function ChatPanel({
   liveTranscript: string | null;
   errorMessage: string | null;
   onMicClick: () => void;
+  onSuggestedQuestion?: (q: string) => void;
 }) {
+  const suggestedQuestions = [strings.suggestedQ1, strings.suggestedQ2, strings.suggestedQ3];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -58,17 +62,38 @@ export function ChatPanel({
         </div>
       )}
 
+      {/* Live transcript */}
       {liveTranscript && (
-        <p className="mt-3 text-right text-sm italic text-muted-foreground">&ldquo;{liveTranscript}&rdquo;</p>
+        <p className="mt-3 text-right text-sm italic text-muted-foreground">
+          &ldquo;{liveTranscript}&rdquo;
+        </p>
       )}
 
       {errorMessage && (
         <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{errorMessage}</p>
       )}
 
+      {/* Mic button */}
       <div className="mt-5 flex justify-center">
         <MicButton status={status} onClick={onMicClick} label={strings[STATUS_LABEL[status]]} />
       </div>
+
+      {/* Suggested question chips — shown when history is empty */}
+      {history.length === 0 && onSuggestedQuestion && (
+        <div className="mt-4 flex flex-wrap gap-2 justify-center">
+          {suggestedQuestions.map((q) => (
+            <button
+              key={q}
+              type="button"
+              onClick={() => onSuggestedQuestion(q)}
+              disabled={status !== "idle"}
+              className="rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:text-foreground disabled:opacity-40"
+            >
+              {q}
+            </button>
+          ))}
+        </div>
+      )}
     </motion.div>
   );
 }

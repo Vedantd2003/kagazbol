@@ -212,6 +212,42 @@ export default function Home() {
 
   const displayStatus: MicStatus = player.isSpeaking ? "speaking" : micStatus;
 
+  const handlePlayAgain = useCallback(async () => {
+    if (!summary) return;
+    try {
+      const audioUrl = await speakText(summary.summary_spoken, language);
+      player.play(audioUrl);
+    } catch {
+      // silent — user can tap again
+    }
+  }, [summary, language, player]);
+
+  const handleSuggestedQuestion = useCallback(
+    async (question: string) => {
+      if (!ocrText || !summary || micStatus !== "idle") return;
+      setLiveTranscript(question);
+      setChatError(null);
+      setMicStatus("thinking");
+      try {
+        const { answer } = await askQuestion(ocrText, summary, language, history, question);
+        const newHistory: ChatTurn[] = [
+          ...history,
+          { role: "user", content: question },
+          { role: "assistant", content: answer },
+        ];
+        setHistory(newHistory);
+        setLiveTranscript(null);
+        const audioUrl = await speakText(answer, language);
+        player.play(audioUrl);
+        setMicStatus("idle");
+      } catch (err) {
+        setChatError(err instanceof Error ? err.message : strings.errorGeneric);
+        setMicStatus("idle");
+      }
+    },
+    [ocrText, summary, language, history, micStatus, player, strings.errorGeneric]
+  );
+
   const handleNewDocument = useCallback(() => {
     pipelineAbortRef.current?.abort();
     pipelineAbortRef.current = null;
@@ -262,6 +298,8 @@ export default function Home() {
             <UploadCard
               key="upload"
               strings={strings}
+              language={language}
+              onLanguageChange={handleLanguageChange}
               onFileSelected={handleFileSelected}
               onSampleSelected={handleSampleSelected}
             />
@@ -282,7 +320,7 @@ export default function Home() {
               animate={{ opacity: 1 }}
               className="flex w-full flex-col items-center gap-6"
             >
-              <SummaryCard summary={summary} strings={strings} />
+              <SummaryCard summary={summary} strings={strings} onPlayAgain={handlePlayAgain} />
 
               <ChatPanel
                 strings={strings}
@@ -291,6 +329,7 @@ export default function Home() {
                 liveTranscript={liveTranscript}
                 errorMessage={chatError}
                 onMicClick={handleMicClick}
+                onSuggestedQuestion={handleSuggestedQuestion}
               />
 
               <button
