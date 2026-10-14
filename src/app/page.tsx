@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { UploadCard } from "@/components/UploadCard";
@@ -13,7 +13,9 @@ import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { UI_STRINGS } from "@/lib/i18n";
 import type { AppLanguage } from "@/lib/sarvam/config";
 import type { ChatTurn, DocumentSummary } from "@/lib/types";
+import { compressImage } from "@/lib/compressImage";
 import {
+  PollingTimeoutError,
   askQuestion,
   getParseResult,
   speakText,
@@ -34,6 +36,16 @@ export default function Home() {
   const [micStatus, setMicStatus] = useState<MicStatus>("idle");
   const [liveTranscript, setLiveTranscript] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | undefined>(undefined);
+
+  // AbortControllers for in-flight pipeline and language-switch re-summarize.
+  // Aborting is a silent cancellation (not an error shown to the user).
+  const pipelineAbortRef = useRef<AbortController | null>(null);
+  const langSwitchAbortRef = useRef<AbortController | null>(null);
+  // Tracks the most recently requested language so stale re-summarize
+  // responses from a previous language switch are discarded.
+  const langRef = useRef<AppLanguage>("en-IN");
 
   const recorder = useAudioRecorder();
   const player = useAudioPlayer();
@@ -42,31 +54,57 @@ export default function Home() {
 
   const runPipeline = useCallback(
     async (file: File, lang: AppLanguage) => {
-      setError(null);
-      setHistory([]);
-      try {
-        setStage("uploading");
-        const { jobId } = await startParse(file, lang);
+      // Cancel any in-flight pipeline (e.g. user uploads a second document).
+      pipelineAbortRef.current?.abort();
+      const ac = new AbortController();
+      pipelineAbortRef.current = ac;
 
+      setError(null);
+      setChatError(null);
+      setHistory([]);
+      setUploadProgress(undefined);
+
+      try {
+        // ── 1. Compress before upload ──────────────────────────────────────
+        const compressed = await compressImage(file);
+
+        // ── 2. Upload with progress ────────────────────────────────────────
+        setStage("uploading");
+        setUploadProgress(0);
+        const { jobId } = await startParse(compressed, lang, {
+          signal: ac.signal,
+          onProgress: setUploadProgress,
+        });
+        setUploadProgress(undefined);
+
+        // ── 3. Poll until OCR job finishes ─────────────────────────────────
         setStage("reading");
-        await waitForParseCompletion(jobId);
+        await waitForParseCompletion(jobId, { signal: ac.signal });
 
         const { ocrText: text } = await getParseResult(jobId);
         setOcrText(text);
 
+        // ── 4. Summarize ───────────────────────────────────────────────────
         setStage("understanding");
-        const { summary: newSummary } = await summarizeDocument(text, lang);
+        const { summary: newSummary } = await summarizeDocument(text, lang, ac.signal);
         setSummary(newSummary);
         setStage("ready");
 
-        const audioUrl = await speakText(newSummary.summary_spoken, lang);
+        // ── 5. Speak summary ───────────────────────────────────────────────
+        const audioUrl = await speakText(newSummary.summary_spoken, lang, ac.signal);
         player.play(audioUrl);
       } catch (err) {
-        setError(err instanceof Error ? err.message : strings.errorGeneric);
+        if (err instanceof DOMException && err.name === "AbortError") return; // user cancelled
+        if (err instanceof PollingTimeoutError) {
+          setError(UI_STRINGS[lang].errorTimeout);
+        } else {
+          setError(err instanceof Error ? err.message : UI_STRINGS[lang].errorGeneric);
+        }
         setStage("upload");
+        setUploadProgress(undefined);
       }
     },
-    [player, strings.errorGeneric]
+    [player]
   );
 
   const handleFileSelected = useCallback(
@@ -92,18 +130,30 @@ export default function Home() {
 
   const handleLanguageChange = useCallback(
     async (lang: AppLanguage) => {
+      // Update the ref immediately so any concurrent switch sees the latest lang.
+      langRef.current = lang;
       setLanguage(lang);
+
       if (stage !== "ready" || !ocrText) return;
+
+      // Cancel any previous language switch re-summarize.
+      langSwitchAbortRef.current?.abort();
+      const ac = new AbortController();
+      langSwitchAbortRef.current = ac;
 
       setStage("understanding");
       setHistory([]);
       try {
-        const { summary: newSummary } = await summarizeDocument(ocrText, lang);
+        const { summary: newSummary } = await summarizeDocument(ocrText, lang, ac.signal);
+        // Discard if another language switch happened while we were waiting.
+        if (langRef.current !== lang) return;
         setSummary(newSummary);
         setStage("ready");
-        const audioUrl = await speakText(newSummary.summary_spoken, lang);
+        const audioUrl = await speakText(newSummary.summary_spoken, lang, ac.signal);
+        if (langRef.current !== lang) return;
         player.play(audioUrl);
       } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
         setError(err instanceof Error ? err.message : strings.errorGeneric);
         setStage("ready");
       }
@@ -119,6 +169,7 @@ export default function Home() {
 
     if (micStatus === "idle") {
       setError(null);
+      setChatError(null);
       setLiveTranscript(null);
       try {
         await recorder.start();
@@ -153,24 +204,26 @@ export default function Home() {
         player.play(audioUrl);
         setMicStatus("idle");
       } catch (err) {
-        setError(err instanceof Error ? err.message : strings.errorGeneric);
+        setChatError(err instanceof Error ? err.message : strings.errorGeneric);
         setMicStatus("idle");
       }
     }
   }, [micStatus, recorder, player, ocrText, summary, language, history, strings.errorGeneric]);
 
-  // While audio is playing (summary autoplay or a chat reply), show the
-  // "speaking" state on the mic button regardless of micStatus.
   const displayStatus: MicStatus = player.isSpeaking ? "speaking" : micStatus;
 
   const handleNewDocument = useCallback(() => {
+    pipelineAbortRef.current?.abort();
+    pipelineAbortRef.current = null;
     player.stop();
     setStage("upload");
     setOcrText(null);
     setSummary(null);
     setHistory([]);
     setError(null);
+    setChatError(null);
     setMicStatus("idle");
+    setUploadProgress(undefined);
   }, [player]);
 
   return (
@@ -185,9 +238,23 @@ export default function Home() {
 
       <main className="mt-8 flex w-full flex-1 flex-col items-center gap-6">
         {error && (
-          <div className="w-full max-w-md rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div
+            role="alert"
+            className="w-full max-w-md rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700"
+          >
             {error}
           </div>
+        )}
+
+        {/* iOS Safari autoplay unlock button */}
+        {player.pendingUrl && (
+          <button
+            type="button"
+            onClick={player.unblockAndPlay}
+            className="w-full max-w-md rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-transform active:scale-95"
+          >
+            {strings.tapToHear}
+          </button>
         )}
 
         <AnimatePresence mode="wait">
@@ -200,7 +267,9 @@ export default function Home() {
             />
           )}
 
-          {stage === "uploading" && <ProcessingStatus key="uploading" label={strings.stepUploading} />}
+          {stage === "uploading" && (
+            <ProcessingStatus key="uploading" label={strings.stepUploading} progress={uploadProgress} />
+          )}
           {stage === "reading" && <ProcessingStatus key="reading" label={strings.stepReadingDocument} />}
           {stage === "understanding" && (
             <ProcessingStatus key="understanding" label={strings.stepUnderstanding} />
@@ -220,7 +289,7 @@ export default function Home() {
                 history={history}
                 status={displayStatus}
                 liveTranscript={liveTranscript}
-                errorMessage={null}
+                errorMessage={chatError}
                 onMicClick={handleMicClick}
               />
 
