@@ -17,6 +17,9 @@ export interface UiStrings {
   stepDone: string;
   errorGeneric: string;
   errorBlurry: string;
+  errorTimeout: string;
+  errorInvalidFile: string;
+  tapToHear: string;
   fullDetails: string;
   documentTypeLabel: string;
   amountsLabel: string;
@@ -54,6 +57,9 @@ export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
     stepDone: "Done",
     errorGeneric: "Something went wrong. Please try again.",
     errorBlurry: "Photo thodi blurry hai — ek aur try karein?",
+    errorTimeout: "Document reading timed out. Please try again with a clearer photo.",
+    errorInvalidFile: "Please upload an image file (JPEG, PNG or WebP).",
+    tapToHear: "Tap to hear summary",
     fullDetails: "Full details",
     documentTypeLabel: "Document type",
     amountsLabel: "Amounts",
@@ -89,6 +95,9 @@ export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
     stepDone: "हो गया",
     errorGeneric: "कुछ गड़बड़ हो गई। कृपया फिर से कोशिश करें।",
     errorBlurry: "फोटो थोड़ी ब्लर है — एक और कोशिश करें?",
+    errorTimeout: "दस्तावेज़ पढ़ने में बहुत समय लग गया। कृपया फिर से कोशिश करें।",
+    errorInvalidFile: "कृपया एक इमेज फ़ाइल अपलोड करें (JPEG, PNG या WebP)।",
+    tapToHear: "सारांश सुनने के लिए टैप करें",
     fullDetails: "पूरी जानकारी",
     documentTypeLabel: "दस्तावेज़ का प्रकार",
     amountsLabel: "राशि",
@@ -124,6 +133,9 @@ export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
     stepDone: "झाले",
     errorGeneric: "काहीतरी चूक झाली. कृपया पुन्हा प्रयत्न करा.",
     errorBlurry: "फोटो थोडा ब्लर आहे — आणखी एकदा प्रयत्न करा?",
+    errorTimeout: "कागदपत्र वाचायला खूप वेळ लागला. कृपया पुन्हा प्रयत्न करा.",
+    errorInvalidFile: "कृपया एक प्रतिमा फाईल अपलोड करा (JPEG, PNG किंवा WebP).",
+    tapToHear: "सारांश ऐकण्यासाठी टॅप करा",
     fullDetails: "संपूर्ण तपशील",
     documentTypeLabel: "कागदपत्राचा प्रकार",
     amountsLabel: "रक्कम",
