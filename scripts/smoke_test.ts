@@ -201,7 +201,7 @@ async function testDocIntelligence() {
 
 async function main() {
   await testChat("sarvam-105b", "flagship");
-  await testChat("sarvam-30b", "conversational");
+  await testChat("sarvam-105b-conversations", "conversational");
   const audio = await testTts();
   await testStt(audio);
   await testTtsFieldNames();

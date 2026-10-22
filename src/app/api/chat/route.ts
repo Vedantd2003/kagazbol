@@ -14,7 +14,7 @@ import type { ChatResponse } from "@/lib/types";
 export const runtime = "nodejs";
 
 /**
- * Grounded follow-up answers via Sarvam 30B. The model returns its answer plus
+ * Grounded follow-up answers via sarvam-105b-conversations. The model returns its answer plus
  * verbatim supporting quotes; the server locates each quote in the document and
  * checks that every amount/date in the answer exists in the document.
  */

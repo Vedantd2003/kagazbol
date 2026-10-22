@@ -41,7 +41,7 @@ export async function chatCompletion(
       messages,
       temperature: opts.temperature ?? 0.2,
       max_tokens: opts.maxTokens ?? 1024,
-      // Both sarvam-105b and sarvam-30b are reasoning models that emit a hidden
+      // Both sarvam-105b and sarvam-105b-conversations are reasoning models that emit a hidden
       // reasoning_content step first. "low" keeps it short, reducing the chance
       // of finish_reason:"length" with null content.
       reasoning_effort: "low",

@@ -11,8 +11,10 @@ export const SARVAM_API_BASE = process.env.SARVAM_API_BASE ?? "https://api.sarva
 export const SARVAM_MODELS = {
   // 105B flagship: used once per document for accuracy-critical structured summary.
   chatFlagship: "sarvam-105b",
-  // 30B mid-size: used for many low-latency conversational follow-ups.
-  chatConversational: "sarvam-30b",
+  // Conversational variant (32K context) for the many low-latency follow-ups.
+  // sarvam-30b was deprecated by Sarvam in Oct 2026: the chat completions endpoint
+  // now only serves sarvam-105b and sarvam-105b-conversations (docs, 2026-10-22).
+  chatConversational: "sarvam-105b-conversations",
   stt: "saaras:v3",
   tts: "bulbul:v3",
 } as const;

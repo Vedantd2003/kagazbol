@@ -18,8 +18,8 @@ photo ─▶ image quality check (canvas)
 ```
 
 Follow-ups: `POST /api/stt` (Saaras v3, codemix, auto language) → user confirms the transcript →
-`POST /api/chat` (sarvam-30b, answer + verbatim quotes) → server locates quotes and checks every
-amount/date in the answer → optional TTS. "Explain simply" is `POST /api/explain` (sarvam-30b).
+`POST /api/chat` (sarvam-105b-conversations, answer + verbatim quotes) → server locates quotes and checks every
+amount/date in the answer → optional TTS. "Explain simply" is `POST /api/explain` (sarvam-105b-conversations).
 
 ## Stage contract
 
@@ -72,6 +72,7 @@ uploaded that document. Answers are additionally checked against the document te
 | STT `saaras:v3`, `mode: codemix`, `language_probability` | Per docs; untested live. Docs now default to `saaras:v4`. |
 | TTS field name | Docs say `language_code`; the app was first verified live with `target_language_code`. The client sends the latter and falls back to the former once on a 400/422. `npm run smoke-test` checks both. |
 | Chat `reasoning_effort: "low"`, `max_tokens` | Unchanged from verified v2 code. |
+| Chat models | `sarvam-30b` was **deprecated** (live 400 on 2026-10-22). Docs list only `sarvam-105b` (128K) and `sarvam-105b-conversations` (32K, real-time/voice); follow-ups now use the latter. |
 
 ## Limits
 

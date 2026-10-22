@@ -19,7 +19,7 @@ reading it aloud over the phone. KagazBol makes that self-serve — and careful.
 4. **Every amount and date is located in the document text.** Found values get a "Found in document"
    stamp and a *Show where* link that highlights the source line; anything not found is flagged.
 5. **Ask by voice or text.** Saaras STT transcribes (Hinglish/Marathi-English is fine); you **confirm
-   or edit what was heard** before it's sent. Sarvam 30B answers only from the document and cites
+   or edit what was heard** before it's sent. sarvam-105b-conversations answers only from the document and cites
    verbatim quotes, which the server checks.
 6. **Listen** with Bulbul TTS: pause, stop instantly, replay, seek, 0.75×–1.5×. Interrupt any time by
    pressing the mic. Or switch voice off entirely.
@@ -53,7 +53,7 @@ flowchart TD
         DI[Document Digitization]
         LID[Text LID]
         L105[sarvam-105b]
-        L30[sarvam-30b]
+        L30[sarvam-105b-conversations]
         TTS[Bulbul v3]
         STT[Saaras v3]
     end

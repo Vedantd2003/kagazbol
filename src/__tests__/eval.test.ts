@@ -72,12 +72,12 @@ describe("live runner with deterministic fakes", () => {
       summarize: async () => ({ summary: SUMMARY_OK("Rs. 1,840.00", "21 June 2026"), usage: { promptTokens: 1000, completionTokens: 500, model: "sarvam-105b" } }),
       answer: async (_t, _s, _l, q) =>
         q.startsWith("How much")
-          ? { answer: "Rs. 9,999", quotes: [], usage: { promptTokens: 100, completionTokens: 10, model: "sarvam-30b" } }
-          : { answer: "21 June 2026 is the last date. 2% late payment surcharge applies.", quotes: ["21 June 2026", "A late payment surcharge of 2% will be applied"], usage: { promptTokens: 100, completionTokens: 10, model: "sarvam-30b" } },
+          ? { answer: "Rs. 9,999", quotes: [], usage: { promptTokens: 100, completionTokens: 10, model: "sarvam-105b-conversations" } }
+          : { answer: "21 June 2026 is the last date. 2% late payment surcharge applies.", quotes: ["21 June 2026", "A late payment surcharge of 2% will be applied"], usage: { promptTokens: 100, completionTokens: 10, model: "sarvam-105b-conversations" } },
     };
     const run = await runEvaluation({
       id: "test-live-0001", mode: "live", datasetId: "seed", samples: [elec], deps,
-      pricing: { currency: "INR", models: { "sarvam-105b": { input: 1, output: 2 }, "sarvam-30b": { input: 0.5, output: 1 } }, ocrPerPage: 0.5 },
+      pricing: { currency: "INR", models: { "sarvam-105b": { input: 1, output: 2 }, "sarvam-105b-conversations": { input: 0.5, output: 1 } }, ocrPerPage: 0.5 },
     });
     const s = run.samples[0];
     expect(s.metrics.ocrCer).toBeGreaterThan(0);
