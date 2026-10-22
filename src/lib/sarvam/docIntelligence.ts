@@ -1,5 +1,8 @@
 import JSZip from "jszip";
-import { sarvamFetch } from "./client";
+import { sarvamFetch, SAFE_RETRY } from "./client";
+
+/** Guard against unexpectedly large result archives. */
+const MAX_RESULT_BYTES = 25 * 1024 * 1024;
 
 export type DocJobState =
   | "Accepted"
@@ -103,6 +106,8 @@ export async function startDocJob(jobId: string): Promise<DocJobState> {
 export async function getDocJobStatus(jobId: string): Promise<JobStatusResponse> {
   const res = await sarvamFetch(`/doc-digitization/job/v1/${jobId}/status`, {
     method: "GET",
+    retry: SAFE_RETRY,
+    timeoutMs: 20_000,
   });
   return (await res.json()) as JobStatusResponse;
 }
@@ -116,6 +121,7 @@ export async function downloadDocResultText(jobId: string): Promise<string> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({}),
+    retry: SAFE_RETRY,
   });
   const data = (await res.json()) as DownloadLinksResponse;
 
@@ -130,6 +136,7 @@ export async function downloadDocResultText(jobId: string): Promise<string> {
     if (!fileRes.ok) continue;
 
     const buf = Buffer.from(await fileRes.arrayBuffer());
+    if (buf.length > MAX_RESULT_BYTES) throw new Error("Result archive too large");
 
     // The download URL is a presigned Azure Blob URL with a query string
     // (e.g. "...document.zip?se=...&sig=..."), so check the filename from
@@ -137,6 +144,8 @@ export async function downloadDocResultText(jobId: string): Promise<string> {
     if (filename.endsWith(".zip")) {
       const zip = await JSZip.loadAsync(buf);
       for (const name of Object.keys(zip.files)) {
+        // Only read text entries; ignore paths with traversal segments.
+        if (name.includes("..")) continue;
         if (name.endsWith(".md") || name.endsWith(".txt")) {
           combined += (await zip.files[name].async("string")) + "\n\n";
         }

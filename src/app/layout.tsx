@@ -1,37 +1,35 @@
-import type { Metadata } from "next";
-import { Noto_Sans, Noto_Sans_Devanagari } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import "@fontsource/mukta/latin-400.css";
+import "@fontsource/mukta/latin-600.css";
+import "@fontsource/mukta/latin-700.css";
+import "@fontsource/mukta/devanagari-400.css";
+import "@fontsource/mukta/devanagari-600.css";
+import "@fontsource/mukta/devanagari-700.css";
+import "@fontsource/tiro-devanagari-marathi/latin-400.css";
+import "@fontsource/tiro-devanagari-marathi/devanagari-400.css";
 import "./globals.css";
-
-const notoSans = Noto_Sans({
-  subsets: ["latin"],
-  variable: "--font-sans",
-  display: "swap",
-});
-
-const notoDevanagari = Noto_Sans_Devanagari({
-  subsets: ["devanagari"],
-  variable: "--font-devanagari",
-  display: "swap",
-});
+import { PreferencesProvider } from "@/hooks/usePreferences";
 
 export const metadata: Metadata = {
-  title: "KagazBol — Talk to any Indian document",
+  title: "KagazBol — Understand every document. In your language.",
   description:
-    "Photograph any Indian document and have a voice conversation about it in Hindi, Marathi, or English.",
+    "Photograph a bill, prescription, bank notice or government form and get a simple explanation in English, Hindi or Marathi — then ask questions by voice.",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#e9eeea" },
+    { media: "(prefers-color-scheme: dark)", color: "#131923" },
+  ],
+};
+
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="hi"
-      className={`${notoSans.variable} ${notoDevanagari.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
-        {children}
+    <html lang="en-IN" className="h-full antialiased">
+      <body className="flex min-h-full flex-col">
+        <PreferencesProvider>{children}</PreferencesProvider>
       </body>
     </html>
   );

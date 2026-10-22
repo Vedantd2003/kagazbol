@@ -4,7 +4,14 @@ services:
     env: node
     buildCommand: npm install --legacy-peer-deps && npm run build
     startCommand: npm start
+    healthCheckPath: /api/health
     envVars:
       - key: SARVAM_API_KEY
         sync: false
         description: Set this in the Render dashboard — never commit the value. Get a key at https://dashboard.sarvam.ai
+      - key: EVAL_ADMIN_TOKEN
+        sync: false
+        description: Optional. 24+ random characters to enable the /eval reliability dashboard. Leave empty to keep it disabled.
+      - key: EVAL_PRICING_JSON
+        sync: false
+        description: Optional. Current Sarvam prices for evaluation cost estimates (see .env.example).

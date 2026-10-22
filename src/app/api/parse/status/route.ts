@@ -1,28 +1,25 @@
 import { NextResponse } from "next/server";
 import { getDocJobStatus } from "@/lib/sarvam/docIntelligence";
-import { SarvamApiError } from "@/lib/sarvam/client";
+import { toAppError } from "@/lib/sarvam/client";
+import { enforceRateLimit, errorResponse } from "@/lib/http";
+import { RATE_LIMITS } from "@/lib/rateLimit";
+import { parseJobId } from "@/lib/validation";
 
 export const runtime = "nodejs";
 
 /** Polled by the client while a document-digitization job is running. */
 export async function GET(request: Request) {
-  const jobId = new URL(request.url).searchParams.get("jobId");
-  if (!jobId) {
-    return NextResponse.json({ error: "Missing jobId" }, { status: 400 });
-  }
-
   try {
-    const status = await getDocJobStatus(jobId);
-    return NextResponse.json({
-      state: status.job_state,
-      errorMessage: status.error_message || status.job_details?.[0]?.error_message,
-    });
-  } catch (err) {
-    if (err instanceof SarvamApiError) {
-      console.error("Sarvam API error in parse/status:", err.status, err.body);
-      return NextResponse.json({ error: `Sarvam API error: ${err.message}` }, { status: 502 });
+    enforceRateLimit(request, RATE_LIMITS.poll);
+    const jobId = parseJobId(new URL(request.url).searchParams.get("jobId"));
+    try {
+      const status = await getDocJobStatus(jobId);
+      // Provider error text can be technical; the client shows its own message for "Failed".
+      return NextResponse.json({ state: status.job_state });
+    } catch (err) {
+      throw toAppError(err, "OCR_FAILED");
     }
-    console.error("parse/status error", err);
-    return NextResponse.json({ error: `Something went wrong: ${err instanceof Error ? err.message : 'Unknown error'}` }, { status: 500 });
+  } catch (err) {
+    return errorResponse(err, "parse/status");
   }
 }

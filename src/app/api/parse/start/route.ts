@@ -1,69 +1,46 @@
 import { NextResponse } from "next/server";
-import {
-  createDocJob,
-  getUploadUrl,
-  uploadFileToUrl,
-  startDocJob,
-} from "@/lib/sarvam/docIntelligence";
-import { DOC_INTELLIGENCE_LANGUAGE, type AppLanguage } from "@/lib/sarvam/config";
-import { SarvamApiError } from "@/lib/sarvam/client";
+import { createDocJob, getUploadUrl, uploadFileToUrl, startDocJob } from "@/lib/sarvam/docIntelligence";
+import { DOC_INTELLIGENCE_LANGUAGE } from "@/lib/sarvam/config";
+import { toAppError } from "@/lib/sarvam/client";
+import { AppError } from "@/lib/errors";
+import { enforceRateLimit, errorResponse } from "@/lib/http";
+import { RATE_LIMITS } from "@/lib/rateLimit";
+import { parseLanguage, validateUpload, SNIFFED_EXTENSION, MAX_UPLOAD_BYTES } from "@/lib/validation";
 
 export const runtime = "nodejs";
 
 /**
  * Kicks off an async document-digitization job for an uploaded image:
- * create job -> get presigned upload URL -> upload bytes -> start job.
- * Returns the job ID for the client to poll via /api/parse/status.
+ * validate (magic bytes, size) → create job → presigned upload → start job.
+ * None of the provider calls here are retried: each creates billable state.
  */
 export async function POST(request: Request) {
   try {
-    const form = await request.formData();
-    const file = form.get("file");
-    const language = (form.get("language") as AppLanguage | null) ?? "en-IN";
+    enforceRateLimit(request, RATE_LIMITS.upload);
+    const len = Number(request.headers.get("content-length") ?? "0");
+    if (len > MAX_UPLOAD_BYTES + 64 * 1024) throw new AppError("FILE_TOO_LARGE");
 
-    if (!(file instanceof File)) {
-      return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
+    let form: FormData;
+    try {
+      form = await request.formData();
+    } catch {
+      throw new AppError("BAD_REQUEST", "Expected a file upload.");
     }
-    if (file.size === 0) {
-      return NextResponse.json({ error: "Uploaded file is empty" }, { status: 400 });
+    const language = parseLanguage(form.get("language"), "en-IN");
+    const { bytes, type } = await validateUpload(form.get("file"));
+
+    // The filename sent upstream is derived from the sniffed type, never the user's name.
+    const filename = `document.${SNIFFED_EXTENSION[type]}`;
+    try {
+      const jobId = await createDocJob(DOC_INTELLIGENCE_LANGUAGE[language]);
+      const uploadUrl = await getUploadUrl(jobId, filename);
+      await uploadFileToUrl(uploadUrl, bytes, type);
+      await startDocJob(jobId);
+      return NextResponse.json({ jobId });
+    } catch (err) {
+      throw toAppError(err, "OCR_FAILED");
     }
-
-    const ALLOWED_MIME = new Set([
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/webp",
-      "image/heic",
-      "image/heif",
-    ]);
-    if (file.type && !ALLOWED_MIME.has(file.type.toLowerCase())) {
-      return NextResponse.json(
-        { error: "Only image files are supported (JPEG, PNG, WebP, HEIC)." },
-        { status: 400 }
-      );
-    }
-
-    const docLanguage = DOC_INTELLIGENCE_LANGUAGE[language] ?? "en-IN";
-    const jobId = await createDocJob(docLanguage);
-
-    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-    const filename = `document.${ext}`;
-
-    const uploadUrl = await getUploadUrl(jobId, filename);
-    const bytes = Buffer.from(await file.arrayBuffer());
-    await uploadFileToUrl(uploadUrl, bytes, file.type || "image/jpeg");
-    await startDocJob(jobId);
-
-    return NextResponse.json({ jobId });
   } catch (err) {
-    if (err instanceof SarvamApiError) {
-      console.error("Sarvam API error in parse/start:", err.status, err.body);
-      return NextResponse.json(
-        { error: `Sarvam API error: ${err.message}` },
-        { status: 502 }
-      );
-    }
-    console.error("parse/start error", err);
-    return NextResponse.json({ error: `Something went wrong: ${err instanceof Error ? err.message : 'Unknown error'}` }, { status: 500 });
+    return errorResponse(err, "parse/start");
   }
 }

@@ -1,82 +1,53 @@
-# KagazBol Design Documentation
+# KagazBol design system — "Stamp & Sheet"
 
-## Direction Evaluation
+The product's world is Indian paperwork, so the visual language is built from its materials rather
+than from a SaaS template: government-form paper, blue-black ink, the violet of an office rubber
+stamp, and a highlighter over the line that matters.
 
-### Direction A: Saffron & Ink (not chosen)
+## Tokens (`src/app/globals.css`)
 
-A warm, earthy palette inspired by traditional Indian document design.
+| Token | Light | Use |
+|---|---|---|
+| `paper` | `#e9eeea` | page ground (cool form-paper, not cream) |
+| `sheet` | `#fbfcfa` | document and panel surfaces |
+| `ink` / `ink-2` / `ink-3` | `#1d2433` / `#4a5468` / `#6b7486` | text |
+| `rule` | `#c9d2cc` | hairlines |
+| `stamp` | `#4636a6` | the single accent: primary actions, verification stamps |
+| `mark` | `#f5d547` | highlighter: evidence and selection |
+| `due` | `#b42318` | deadlines, warnings, "not found" |
+| `ok` | `#1e6b4f` | completed steps, privacy |
 
-- Primary: Saffron orange (#F4A340)
-- Background: Cream (#FAF6F0)
-- Foreground: Deep ink (#1F2937)
-- Accent: Forest green (#0F6E5E)
+Dark mode has its own values for every token (not an automatic inversion).
 
-**Why not chosen:**
-- Saffron on cream fails WCAG AA for small Devanagari text (contrast ratio ~2.8:1 for body copy).
-- Orange primary with dark text needs careful application to avoid vibrancy fatigue on AMOLED displays.
-- Noto Sans Devanagari renders better with cooler backgrounds (less yellow cast).
-- Elderly users in user research found the warm background made dense Devanagari text harder to read.
+**Type.** Tiro Devanagari Marathi (display; Latin + Marathi-specific Devanagari forms, by Tiro
+Typeworks) and Mukta (text; Indian-designed, Latin + Devanagari in one family). Self-hosted via
+`@fontsource` — no runtime call to Google Fonts. 18 px base (20.5 px with "Larger text"), modular
+scale, Devanagari gets extra line height.
 
-### Direction B: Indigo & Mist (CHOSEN)
+**Shape.** Paper has 3 px corners, controls 10 px, panels 14 px — radius encodes "document" vs
+"interface". Touch targets ≥ 44 px; primary actions 64 px.
 
-A calm, trustworthy palette that prioritises legibility for Devanagari script.
+**The one flourish.** The rubber stamp (`.stamp`): double ring, slight rotation, ink texture. It only
+ever carries meaning — "Found in document", "Not found — check the original", verification of answers.
 
-**Why chosen:**
-- Indigo primary (#3730A3) on white: contrast ratio 8.6:1 — exceeds WCAG AA for all text sizes.
-- Light mist background (#F8F7FF) avoids harsh glare on mobile screens in daylight.
-- Excellent Noto Sans Devanagari rendering: the blue-shifted background reduces letterform blur.
-- Accessible to elderly users: high contrast, generous 18px base font.
-- Dark mode support: deep indigo (#1A1830) feels natural on AMOLED without pure black.
-- Amber accent (#F59E0B) for amounts/deadlines: warm, attention-drawing, accessible.
-
-## Color Palette
-
-| Token | Light | Dark | Usage |
-|---|---|---|---|
-| `--background` | #F8F7FF | #1A1830 | Page background |
-| `--foreground` | #1E1B4B | #F1F0FF | Body text |
-| `--card` | #FFFFFF | #252342 | Card surfaces |
-| `--primary` | #3730A3 | #818CF8 | Buttons, active states |
-| `--primary-foreground` | #FFFFFF | #1A1830 | Text on primary |
-| `--accent` | #F59E0B | #FBBF24 | Amounts, deadlines, highlights |
-| `--muted` | #EEF2FF | #2E2A52 | Subtle backgrounds |
-| `--muted-foreground` | #6B7280 | #9CA3AF | Hint text, labels |
-| `--border` | #E0E7FF | #3D3870 | Dividers, card borders |
-| `--warning` | #DC2626 | #F87171 | Overdue deadlines, errors |
-
-## Typography
-
-**Primary font:** Noto Sans (Latin, loaded via next/font/google)
-- CSS variable: `--font-sans`
-- Subsets: latin
-- Display: swap
-
-**Devanagari font:** Noto Sans Devanagari (loaded via next/font/google)
-- CSS variable: `--font-devanagari`
-- Subsets: devanagari
-- Display: swap
-
-**Font stack:** `var(--font-sans), var(--font-devanagari), system-ui, sans-serif`
-
-**Base size:** 18px — optimised for mobile readability and elderly users.
-
-**Devanagari scaling:** `:lang(hi), :lang(mr) { font-size: 1.05em }` — Devanagari letterforms
-are denser than Latin, so 1.05× improves legibility without breaking layouts.
-
-## Spacing System
-
-Uses Tailwind CSS v4 defaults (4px base unit):
-- Micro: 4px (gap-1), 8px (gap-2)
-- Component padding: 16px (p-4), 24px (p-6)
-- Card radius: 24px (rounded-3xl)
-- Button radius: 12px (rounded-xl)
-- Touch targets: minimum 64×64px (per WCAG 2.5.5)
+**Motion.** One orchestrated moment on the landing page (highlight sweep → stamp → explanation).
+Everything else is a response to the user: drawers, evidence highlight sweep, recording pulse,
+real progress. `prefers-reduced-motion` reduces all of it to instant state changes. Motion never
+stands in for progress: processing steps tick only when the server confirms them.
 
 ## Accessibility
 
-- All focus states: 3px solid primary outline, 2px offset, 4px radius
-- Reduced motion: all animations disabled via `prefers-reduced-motion: reduce`
-- Minimum contrast: 4.5:1 for normal text (WCAG AA), 3:1 for large text
-- Devanagari text: 1.05× scale ensures adequate x-height
-- Voice orb: minimum 64×64px, aria-label updates with state
-- Screen reader: all decorative icons are aria-hidden
+Keyboard-reachable everything, visible 3 px focus ring, skip link, native `<dialog>` for settings
+(focus trap, Esc), radio-group language switch with native names, `aria-live` for processing steps,
+mic status and answers, labelled sliders, text alternatives to every voice feature, and a text-only
+mode. Colour is never the only signal: stamps have words, warnings have icons.
+
+## Pages
+
+- `/` — landing: live demo hero, how it works (a real 4-step sequence), checked answers, voice,
+  language capability table generated from `src/lib/languages.ts`, privacy facts.
+- `/app` — workspace: upload → quality check → real processing steps → split pane (document text with
+  evidence highlights and select-to-explain | explanation + ask). Phones get three tabs.
+- `/eval` — admin reliability dashboard.
+
+The previous "Indigo & Mist" direction (v2) was replaced entirely.

@@ -1,0 +1,20 @@
+{
+  "id": "hi-text-001",
+  "synthetic": true,
+  "category": "water_bill",
+  "sourceLanguage": "hi-IN",
+  "image": null,
+  "referenceOcr": "नगर निगम जल विभाग\nपानी का बिल\nउपभोक्ता का नाम: सीमा वर्मा\nउपभोक्ता संख्या: 77881234\nबिल की तारीख: 02/09/2026\nकुल देय राशि: ₹ 640\nभुगतान की अंतिम तारीख: 25 सितंबर 2026\nनिर्धारित तारीख के बाद भुगतान करने पर ₹ 50 विलंब शुल्क लगेगा।\n(यह एक काल्पनिक नमूना दस्तावेज़ है।)",
+  "expected": {
+    "documentType": "water_bill",
+    "amounts": [{ "label": "कुल देय राशि", "value": "₹ 640" }, { "label": "विलंब शुल्क", "value": "₹ 50" }],
+    "dates": [{ "label": "बिल की तारीख", "value": "02/09/2026" }, { "label": "अंतिम तारीख", "value": "25 सितंबर 2026" }],
+    "deadline": "25 सितंबर 2026",
+    "fields": [{ "name": "consumer_number", "type": "id", "value": "77881234" }]
+  },
+  "qa": [
+    { "question": "कितना भरना है?", "answer": "₹ 640", "answerType": "amount", "evidence": ["कुल देय राशि: ₹ 640"] },
+    { "question": "आखिरी तारीख कब है?", "answer": "25 सितंबर 2026", "answerType": "date", "evidence": ["25 सितंबर 2026"] }
+  ],
+  "notes": "Text-only synthetic sample (no image): skips OCR; used for language detection, extraction and QA in Hindi."
+}

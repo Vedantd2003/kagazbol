@@ -1,50 +1,56 @@
 import { NextResponse } from "next/server";
 import { chatCompletion } from "@/lib/sarvam/chat";
 import { SARVAM_MODELS } from "@/lib/sarvam/config";
-import { SarvamApiError } from "@/lib/sarvam/client";
-import { buildSummaryPrompt } from "@/lib/prompts";
-import { parseSummaryResponse } from "@/lib/parseSummary";
-import type { SummarizeRequest, SummarizeResponse } from "@/lib/types";
+import { toAppError } from "@/lib/sarvam/client";
+import { buildSummarySystemPrompt, buildSummaryUserPrompt } from "@/lib/prompts";
+import { parseSummaryWithStatus } from "@/lib/parseSummary";
+import { buildFieldChecks } from "@/lib/pipeline";
+import { enforceRateLimit, errorResponse, readJson } from "@/lib/http";
+import { RATE_LIMITS } from "@/lib/rateLimit";
+import { MAX_OCR_CHARS, parseLanguage, requireString } from "@/lib/validation";
+import type { SummarizeResponse } from "@/lib/types";
 
 export const runtime = "nodejs";
 
 /**
- * One accuracy-critical call per document: Sarvam 105B turns raw OCR text
- * into a structured summary card. Logs latency for the model-routing
- * comparison referenced in the blog post.
+ * One accuracy-critical call per document: Sarvam 105B turns OCR text into a
+ * structured summary in the chosen language. Every amount/date it returns is
+ * then checked against the OCR text on the server.
  */
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as SummarizeRequest;
-    if (!body.ocrText?.trim()) {
-      return NextResponse.json({ error: "No document text to summarize." }, { status: 400 });
+    enforceRateLimit(request, RATE_LIMITS.llm);
+    const body = await readJson(request);
+    const ocrText = requireString(body.ocrText, "document text", MAX_OCR_CHARS);
+    const language = parseLanguage(body.language);
+
+    let result;
+    try {
+      // sarvam-105b is a reasoning model with variable hidden reasoning length,
+      // so it needs generous token headroom.
+      result = await chatCompletion(
+        SARVAM_MODELS.chatFlagship,
+        [
+          { role: "system", content: buildSummarySystemPrompt(language) },
+          { role: "user", content: buildSummaryUserPrompt(ocrText) },
+        ],
+        { temperature: 0.1, maxTokens: 4096 }
+      );
+    } catch (err) {
+      throw toAppError(err, "TRANSLATION_FAILED");
     }
 
-    const prompt = buildSummaryPrompt(body.ocrText, body.language);
-    // sarvam-105b is a reasoning model: some of the token budget goes to a
-    // hidden reasoning step before the JSON answer, and its reasoning length
-    // is highly variable, so this needs generous headroom.
-    const result = await chatCompletion(
-      SARVAM_MODELS.chatFlagship,
-      [{ role: "user", content: prompt }],
-      { temperature: 0.1, maxTokens: 4096 }
-    );
-
     console.log(`[model-routing] summarize via ${result.model}: ${result.latencyMs}ms`);
-
-    const summary = parseSummaryResponse(result.text);
+    const { summary, fallback } = parseSummaryWithStatus(result.text);
     const response: SummarizeResponse = {
       summary,
+      checks: buildFieldChecks(summary, ocrText),
+      fallback,
       latencyMs: result.latencyMs,
       model: result.model,
     };
     return NextResponse.json(response);
   } catch (err) {
-    if (err instanceof SarvamApiError) {
-      console.error("Sarvam API error in summarize:", err.status, err.body);
-      return NextResponse.json({ error: `Sarvam API error: ${err.message}` }, { status: 502 });
-    }
-    console.error("summarize error", err);
-    return NextResponse.json({ error: `Something went wrong: ${err instanceof Error ? err.message : 'Unknown error'}` }, { status: 500 });
+    return errorResponse(err, "summarize");
   }
 }

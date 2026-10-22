@@ -1,60 +1,269 @@
 @import "tailwindcss";
 
-/* Direction B: Indigo & Mist */
+/*
+ * KagazBol design system — "Stamp & Sheet"
+ *
+ * The world of the product is Indian paperwork: government-form paper, fountain-pen
+ * ink, the violet of an office rubber stamp, and a highlighter run over the line
+ * that matters. Tokens are named after those materials.
+ *
+ *   paper   cool form-paper ground          sheet   the document surface
+ *   ink     blue-black body text            ink-2   secondary text
+ *   rule    hairlines and borders           stamp   the one accent (actions, verification)
+ *   mark    highlighter (evidence)          due     red ink (deadlines, warnings)
+ *   ok      green ink (success)
+ */
+
 :root {
-  --background: #F8F7FF;
-  --foreground: #1E1B4B;
-  --card: #FFFFFF;
-  --primary: #3730A3;
-  --primary-foreground: #FFFFFF;
-  --accent: #F59E0B;
-  --muted: #EEF2FF;
-  --muted-foreground: #6B7280;
-  --border: #E0E7FF;
-  --warning: #DC2626;
+  --paper: #e9eeea;
+  --sheet: #fbfcfa;
+  --sheet-2: #f2f5f2;
+  --ink: #1d2433;
+  --ink-2: #4a5468;
+  --ink-3: #6b7486;
+  --rule: #c9d2cc;
+  --rule-strong: #9aa59e;
+  --stamp: #4636a6;
+  --stamp-ink: #ffffff;
+  --stamp-soft: #e6e2f6;
+  --mark: #f5d547;
+  --mark-soft: #fbedb0;
+  --due: #b42318;
+  --due-soft: #fbe4e1;
+  --ok: #1e6b4f;
+  --ok-soft: #dcefe6;
+  --focus: #4636a6;
+  --shadow-sheet: 0 1px 0 rgb(29 36 51 / 0.06), 0 8px 24px -12px rgb(29 36 51 / 0.18);
+  --shadow-lift: 0 2px 0 rgb(29 36 51 / 0.05), 0 18px 40px -18px rgb(29 36 51 / 0.32);
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #1A1830;
-    --foreground: #F1F0FF;
-    --card: #252342;
-    --primary: #818CF8;
-    --primary-foreground: #1A1830;
-    --accent: #FBBF24;
-    --muted: #2E2A52;
-    --muted-foreground: #9CA3AF;
-    --border: #3D3870;
-    --warning: #F87171;
+  :root:not([data-theme="light"]) {
+    --paper: #131923;
+    --sheet: #1b2230;
+    --sheet-2: #222a39;
+    --ink: #e8ecf1;
+    --ink-2: #b0b8c7;
+    --ink-3: #8a93a5;
+    --rule: #2f3849;
+    --rule-strong: #4a5568;
+    --stamp: #aea2ff;
+    --stamp-ink: #151028;
+    --stamp-soft: #2b2652;
+    --mark: #e3c33a;
+    --mark-soft: #4a4116;
+    --due: #ff8f80;
+    --due-soft: #3d1f1d;
+    --ok: #74d3a8;
+    --ok-soft: #173329;
+    --focus: #aea2ff;
+    --shadow-sheet: 0 1px 0 rgb(0 0 0 / 0.3), 0 10px 30px -14px rgb(0 0 0 / 0.6);
+    --shadow-lift: 0 2px 0 rgb(0 0 0 / 0.3), 0 22px 44px -18px rgb(0 0 0 / 0.7);
+    color-scheme: dark;
   }
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-accent: var(--accent);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-border: var(--border);
-  --color-warning: var(--warning);
-  --font-sans: var(--font-sans);
-  --font-devanagari: var(--font-devanagari);
+  --color-paper: var(--paper);
+  --color-sheet: var(--sheet);
+  --color-sheet-2: var(--sheet-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-stamp: var(--stamp);
+  --color-stamp-ink: var(--stamp-ink);
+  --color-stamp-soft: var(--stamp-soft);
+  --color-mark: var(--mark);
+  --color-mark-soft: var(--mark-soft);
+  --color-due: var(--due);
+  --color-due-soft: var(--due-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+
+  /* Type: Tiro Devanagari Marathi (display; Latin + Marathi-specific Devanagari forms)
+     and Mukta (text; Indian-designed, Latin + Devanagari in one family). */
+  --font-display: "Tiro Devanagari Marathi", "Noto Serif Devanagari", Georgia, serif;
+  --font-sans: "Mukta", "Noto Sans Devanagari", system-ui, sans-serif;
+
+  /* Modular scale on an 18px base (ratio ~1.2 below body, ~1.25 above). */
+  --text-xs: 0.78rem;
+  --text-xs--line-height: 1.4;
+  --text-sm: 0.89rem;
+  --text-sm--line-height: 1.5;
+  --text-base: 1rem;
+  --text-base--line-height: 1.6;
+  --text-lg: 1.17rem;
+  --text-lg--line-height: 1.5;
+  --text-xl: 1.39rem;
+  --text-xl--line-height: 1.35;
+  --text-2xl: 1.67rem;
+  --text-2xl--line-height: 1.3;
+  --text-3xl: 2.17rem;
+  --text-3xl--line-height: 1.2;
+  --text-4xl: 2.83rem;
+  --text-4xl--line-height: 1.12;
+  --text-5xl: 3.67rem;
+  --text-5xl--line-height: 1.06;
+
+  --radius-paper: 3px;
+  --radius-control: 10px;
+  --radius-panel: 14px;
+  --radius-pill: 999px;
+
+  --shadow-sheet: var(--shadow-sheet);
+  --shadow-lift: var(--shadow-lift);
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+:root {
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 420ms;
+}
+
+html {
+  font-size: 18px;
+  -webkit-text-size-adjust: 100%;
+}
+html[data-large-text="true"] {
+  font-size: 20.5px;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), var(--font-devanagari), system-ui, sans-serif;
-  font-size: 18px; /* 18px base for mobile readability */
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "kern", "liga";
+  text-rendering: optimizeLegibility;
 }
 
-/* Devanagari text gets slightly larger for legibility */
+/* Devanagari needs a touch more line height for matras. */
 :lang(hi),
 :lang(mr) {
-  font-size: 1.05em;
+  line-height: 1.7;
+}
+
+::selection {
+  background: var(--mark);
+  color: #1d2433;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* The display face is used for headings only, never for UI controls. */
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+/* Paper sheet: the document surface. Small radius, because paper has corners. */
+.sheet {
+  background: var(--sheet);
+  border-radius: var(--radius-paper);
+  box-shadow: var(--shadow-sheet);
+}
+
+/* Highlighter mark used for evidence. Slight skew like a real pen stroke. */
+.mark {
+  background: linear-gradient(100deg, transparent 0.15em, var(--mark-soft) 0.2em, var(--mark-soft) calc(100% - 0.2em), transparent calc(100% - 0.15em));
+  border-radius: 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  padding: 0 0.1em;
+}
+.mark-strong {
+  background: var(--mark);
+  color: #1d2433;
+}
+
+/* Rubber stamp: the one memorable element. Double ring, slight rotation, ink texture. */
+.stamp {
+  --stamp-color: var(--stamp);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.12em 0.6em 0.08em;
+  border: 2px solid var(--stamp-color);
+  outline: 1px solid var(--stamp-color);
+  outline-offset: 2px;
+  border-radius: 6px;
+  color: var(--stamp-color);
+  font-weight: 700;
+  font-size: var(--text-xs);
+  letter-spacing: 0.02em;
+  transform: rotate(-2.5deg);
+  mask-image: radial-gradient(circle at 30% 40%, #000 60%, rgb(0 0 0 / 0.82) 61%, #000 70%);
+  white-space: nowrap;
+}
+.stamp[data-tone="due"] {
+  --stamp-color: var(--due);
+}
+.stamp[data-tone="muted"] {
+  --stamp-color: var(--ink-3);
+  outline-style: dashed;
+}
+
+@keyframes stamp-in {
+  0% {
+    transform: rotate(-12deg) scale(1.6);
+    opacity: 0;
+  }
+  60% {
+    transform: rotate(-2.5deg) scale(0.94);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(-2.5deg) scale(1);
+  }
+}
+.stamp-animate {
+  animation: stamp-in var(--dur-slow) var(--ease-out) both;
+}
+
+@keyframes sweep {
+  from {
+    background-size: 0% 100%;
+  }
+  to {
+    background-size: 100% 100%;
+  }
+}
+.mark-sweep {
+  background-image: linear-gradient(var(--mark-soft), var(--mark-soft));
+  background-repeat: no-repeat;
+  background-size: 0% 100%;
+  animation: sweep 700ms var(--ease-out) forwards;
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--due) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 18px transparent;
+  }
+}
+.recording-ring {
+  animation: pulse-ring 1.4s var(--ease-out) infinite;
+}
+
+@keyframes indeterminate {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -64,32 +273,57 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
-/* Focus styles */
-:focus-visible {
-  outline: 3px solid var(--primary);
-  outline-offset: 2px;
-  border-radius: 4px;
+.sr-only-focusable:not(:focus) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
-/* Pulse ring animation for VoiceOrb idle state */
-@keyframes pulse-ring {
-  0% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(55, 48, 163, 0.45);
+/* Drawer motion: slides from the bottom on phones, from the right on larger screens. */
+dialog.drawer[open] {
+  animation: drawer-up var(--dur-slow) var(--ease-out);
+}
+dialog.drawer[open]::backdrop {
+  animation: fade var(--dur-base) ease-out;
+}
+@media (min-width: 640px) {
+  dialog.drawer[open] {
+    animation-name: drawer-left;
   }
-  70% {
-    transform: scale(1);
-    box-shadow: 0 0 0 18px rgba(55, 48, 163, 0);
+}
+@keyframes drawer-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
   }
-  100% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(55, 48, 163, 0);
+}
+@keyframes drawer-left {
+  from {
+    transform: translateX(32px);
+    opacity: 0;
+  }
+}
+@keyframes fade {
+  from {
+    opacity: 0;
   }
 }
 
-.animate-pulse-ring {
-  animation: pulse-ring 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+@keyframes scan {
+  from {
+    top: -2.5rem;
+  }
+  to {
+    top: 100%;
+  }
+}
+.scanline {
+  animation: scan 2.2s var(--ease-in-out) infinite alternate;
 }

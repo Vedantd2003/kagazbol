@@ -1,5 +1,33 @@
 # Changelog
 
+## v3.0.0 — 2026-10-22 (`feature/kagazbol-ai-2`)
+
+See `docs/BASELINE.md` for what was found before this release.
+
+### Fixed
+- `npm test` crashed on a clean install (vitest 5 needs `vite`; `--legacy-peer-deps` skipped it).
+- Builds failed without access to Google Fonts; fonts are now self-hosted.
+- A TTS failure after a successful summary reset the app and threw the summary away.
+- Retrying a failed summary re-uploaded and re-OCR'd the document (double billing); it now reuses the OCR text.
+- Prompt break-out: documents containing `"""` could close the prompt's document block.
+- Raw provider/internal error text was sent to the browser.
+- Unvalidated `jobId` was interpolated into upstream URLs; file type trusted the browser's MIME type.
+- Language-switch flicker/race replaced by per-language caching.
+- README described streaming answers, VAD and barge-in that the UI never used (dead code removed; barge-in now real).
+
+### Added
+- Evidence checking for every extracted amount/date and every answer (quotes + values), with source-line highlighting.
+- Voice state machine, confirm-before-asking transcripts, low-confidence warnings, language-switch suggestions, interruptible playback with pause/seek/replay/speed, text-only mode, saved preferences.
+- "Explain simply" for any selected word or line; document language detection (Text LID); image and OCR quality warnings.
+- Language capability registry; structured error codes; bounded retries with jitter; rate limiting; request size limits; magic-byte upload validation; `/api/health`.
+- Evaluation subsystem: CER/WER, extraction, numeric, evidence, faithfulness, language, latency, cost; checks and live modes; synthetic seed dataset (EN/HI/MR); run store; regression comparison; admin-only API and dashboard; CLI; CI workflow.
+- Complete redesign ("Stamp & Sheet"): landing page, workspace, settings, reliability dashboard; Hindi and Marathi UI throughout.
+- Tests: 96 unit/route/component tests; Playwright e2e on desktop and phone incl. the voice flow.
+
+### Removed
+- Unused `VoiceOrb`, `DebugPanel`, `ErrorCard`, `useVAD`, `useStreamingChat`, filler audio and `@ricky0123/vad-*` deps; `scripts/gen-fillers.ts`.
+- Old eval format (`eval/samples`, `eval/metrics.ts`) — replaced by `eval/datasets` and `src/lib/eval`.
+
 ## v2.0.0 — 2026-10-14
 
 Full rebuild on top of the original v1 scaffold. All changes are on the `upgrade/v2` branch.

@@ -1,7 +1,10 @@
 import { SARVAM_API_BASE } from "@/lib/sarvam/config";
 import { SARVAM_MODELS } from "@/lib/sarvam/config";
 import { buildChatSystemPrompt } from "@/lib/prompts";
-import type { ChatRequest } from "@/lib/types";
+import { parseHistory, parseLanguage, requireString, MAX_OCR_CHARS, MAX_QUESTION_CHARS } from "@/lib/validation";
+import { parseSummaryWithStatus } from "@/lib/parseSummary";
+import { isAppError } from "@/lib/errors";
+import { checkRateLimit, clientKey, RATE_LIMITS } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -25,21 +28,24 @@ export async function POST(request: Request) {
       }
 
       try {
-        const body = (await request.json()) as ChatRequest;
-
-        if (!body.question?.trim()) {
-          emit("error", { message: "No question provided." });
+        if (!checkRateLimit(`${RATE_LIMITS.llm.name}:${clientKey(request)}`, RATE_LIMITS.llm).allowed) {
+          emit("error", { message: "Too many requests. Please wait a moment and try again.", code: "RATE_LIMITED" });
           controller.close();
           return;
         }
+        const body = (await request.json()) as Record<string, unknown>;
+        const ocrText = requireString(body.ocrText, "document text", MAX_OCR_CHARS);
+        const question = requireString(body.question, "question", MAX_QUESTION_CHARS);
+        const language = parseLanguage(body.language);
+        const summary = parseSummaryWithStatus(JSON.stringify(body.summary ?? {})).summary;
 
         const messages = [
           {
             role: "system",
-            content: buildChatSystemPrompt(body.ocrText, body.summary, body.language),
+            content: buildChatSystemPrompt(ocrText, summary, language, { plain: true }),
           },
-          ...body.history.map((turn) => ({ role: turn.role, content: turn.content })),
-          { role: "user", content: body.question },
+          ...parseHistory(body.history),
+          { role: "user", content: question },
         ];
 
         // Emit reasoning_started immediately before reading chunks
@@ -62,14 +68,11 @@ export async function POST(request: Request) {
         });
 
         if (!res.ok) {
-          let errMsg = `Sarvam API error: ${res.status}`;
-          try {
-            const errBody = (await res.json()) as { error?: { message?: string } };
-            if (errBody?.error?.message) errMsg = errBody.error.message;
-          } catch {
-            // ignore
-          }
-          emit("error", { message: errMsg });
+          console.error(`[chat/stream] provider ${res.status}`);
+          emit("error", {
+            message: res.status === 429 ? "Too many requests. Please wait a moment and try again." : "The assistant couldn't answer just now. Please try again.",
+            code: res.status === 429 ? "RATE_LIMITED" : "ANSWER_FAILED",
+          });
           controller.close();
           return;
         }
@@ -149,7 +152,8 @@ export async function POST(request: Request) {
         }
       } catch (err) {
         try {
-          const msg = err instanceof Error ? err.message : "Unknown error";
+          const msg = isAppError(err) ? err.publicMessage : "Something went wrong on our side. Please try again.";
+          if (!isAppError(err)) console.error("[chat/stream]", err instanceof Error ? err.message : err);
           controller.enqueue(encoder.encode(sseEvent("error", { message: msg })));
         } catch {
           // controller already closed

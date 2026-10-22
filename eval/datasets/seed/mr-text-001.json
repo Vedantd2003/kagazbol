@@ -1,0 +1,20 @@
+{
+  "id": "mr-text-001",
+  "synthetic": true,
+  "category": "government_notice",
+  "sourceLanguage": "mr-IN",
+  "image": null,
+  "referenceOcr": "ग्रामपंचायत कार्यालय, शिरूर\nमालमत्ता कर सूचना\nमालमत्ताधारकाचे नाव: सुरेश पाटील\nमालमत्ता क्रमांक: 2024/118\nचालू वर्षाचा कर: रु. 1,250\nकर भरण्याची अंतिम तारीख: 31 डिसेंबर 2026\nमुदतीनंतर कर भरल्यास दरमहा 2% दंड आकारला जाईल.\n(हा एक काल्पनिक नमुना दस्तऐवज आहे.)",
+  "expected": {
+    "documentType": "property_tax_notice",
+    "amounts": [{ "label": "कर", "value": "रु. 1,250" }],
+    "dates": [{ "label": "अंतिम तारीख", "value": "31 डिसेंबर 2026" }],
+    "deadline": "31 डिसेंबर 2026",
+    "fields": [{ "name": "property_number", "type": "id", "value": "2024/118" }]
+  },
+  "qa": [
+    { "question": "किती कर भरायचा आहे?", "answer": "रु. 1,250", "answerType": "amount", "evidence": ["चालू वर्षाचा कर: रु. 1,250"] },
+    { "question": "उशिरा भरल्यास काय होईल?", "answer": "दरमहा 2% दंड", "answerType": "text", "evidence": ["मुदतीनंतर कर भरल्यास दरमहा 2% दंड आकारला जाईल"] }
+  ],
+  "notes": "Text-only synthetic sample (no image): skips OCR; used for language detection, extraction and QA in Marathi."
+}

@@ -1,0 +1,280 @@
+{
+  "id": "2026-10-22-16-09-57-cli-checks",
+  "mode": "checks",
+  "status": "completed",
+  "datasetId": "seed",
+  "datasetSize": 5,
+  "syntheticOnly": true,
+  "createdAt": "2026-10-22T16:09:57.130Z",
+  "finishedAt": "2026-10-22T16:09:57.159Z",
+  "progress": {
+    "done": 5,
+    "total": 5
+  },
+  "metrics": {
+    "ocrCer": null,
+    "ocrWer": null,
+    "languageAccuracy": null,
+    "extractionAccuracy": null,
+    "numericAccuracy": null,
+    "evidenceCoverage": null,
+    "answerAccuracy": null,
+    "faithfulness": null,
+    "locatorRecall": 1,
+    "normalizationAccuracy": 1,
+    "checkerRecall": 1,
+    "checkerFalseAlarm": 0,
+    "sampleSuccessRate": 1,
+    "latencyP50Ms": 1,
+    "latencyP95Ms": 25,
+    "estimatedCost": null
+  },
+  "byCategory": {
+    "bank_notice": {
+      "ocrCer": null,
+      "ocrWer": null,
+      "languageAccuracy": null,
+      "extractionAccuracy": null,
+      "numericAccuracy": null,
+      "evidenceCoverage": null,
+      "answerAccuracy": null,
+      "faithfulness": null,
+      "locatorRecall": 1,
+      "normalizationAccuracy": 1,
+      "checkerRecall": 1,
+      "checkerFalseAlarm": 0,
+      "sampleSuccessRate": 1,
+      "latencyP50Ms": 25,
+      "latencyP95Ms": 25,
+      "estimatedCost": null,
+      "samples": 1
+    },
+    "electricity_bill": {
+      "ocrCer": null,
+      "ocrWer": null,
+      "languageAccuracy": null,
+      "extractionAccuracy": null,
+      "numericAccuracy": null,
+      "evidenceCoverage": null,
+      "answerAccuracy": null,
+      "faithfulness": null,
+      "locatorRecall": 1,
+      "normalizationAccuracy": 1,
+      "checkerRecall": 1,
+      "checkerFalseAlarm": 0,
+      "sampleSuccessRate": 1,
+      "latencyP50Ms": 1,
+      "latencyP95Ms": 1,
+      "estimatedCost": null,
+      "samples": 1
+    },
+    "water_bill": {
+      "ocrCer": null,
+      "ocrWer": null,
+      "languageAccuracy": null,
+      "extractionAccuracy": null,
+      "numericAccuracy": null,
+      "evidenceCoverage": null,
+      "answerAccuracy": null,
+      "faithfulness": null,
+      "locatorRecall": 1,
+      "normalizationAccuracy": 1,
+      "checkerRecall": 1,
+      "checkerFalseAlarm": 0,
+      "sampleSuccessRate": 1,
+      "latencyP50Ms": 1,
+      "latencyP95Ms": 1,
+      "estimatedCost": null,
+      "samples": 1
+    },
+    "government_notice": {
+      "ocrCer": null,
+      "ocrWer": null,
+      "languageAccuracy": null,
+      "extractionAccuracy": null,
+      "numericAccuracy": null,
+      "evidenceCoverage": null,
+      "answerAccuracy": null,
+      "faithfulness": null,
+      "locatorRecall": 1,
+      "normalizationAccuracy": 1,
+      "checkerRecall": 1,
+      "checkerFalseAlarm": 0,
+      "sampleSuccessRate": 1,
+      "latencyP50Ms": 0,
+      "latencyP95Ms": 0,
+      "estimatedCost": null,
+      "samples": 1
+    },
+    "prescription": {
+      "ocrCer": null,
+      "ocrWer": null,
+      "languageAccuracy": null,
+      "extractionAccuracy": null,
+      "numericAccuracy": null,
+      "evidenceCoverage": null,
+      "answerAccuracy": null,
+      "faithfulness": null,
+      "locatorRecall": 1,
+      "normalizationAccuracy": 1,
+      "checkerRecall": 1,
+      "checkerFalseAlarm": 0,
+      "sampleSuccessRate": 1,
+      "latencyP50Ms": 0,
+      "latencyP95Ms": 0,
+      "estimatedCost": null,
+      "samples": 1
+    }
+  },
+  "byLanguage": {
+    "en-IN": {
+      "ocrCer": null,
+      "ocrWer": null,
+      "languageAccuracy": null,
+      "extractionAccuracy": null,
+      "numericAccuracy": null,
+      "evidenceCoverage": null,
+      "answerAccuracy": null,
+      "faithfulness": null,
+      "locatorRecall": 1,
+      "normalizationAccuracy": 1,
+      "checkerRecall": 1,
+      "checkerFalseAlarm": 0,
+      "sampleSuccessRate": 1,
+      "latencyP50Ms": 1,
+      "latencyP95Ms": 25,
+      "estimatedCost": null,
+      "samples": 3
+    },
+    "hi-IN": {
+      "ocrCer": null,
+      "ocrWer": null,
+      "languageAccuracy": null,
+      "extractionAccuracy": null,
+      "numericAccuracy": null,
+      "evidenceCoverage": null,
+      "answerAccuracy": null,
+      "faithfulness": null,
+      "locatorRecall": 1,
+      "normalizationAccuracy": 1,
+      "checkerRecall": 1,
+      "checkerFalseAlarm": 0,
+      "sampleSuccessRate": 1,
+      "latencyP50Ms": 1,
+      "latencyP95Ms": 1,
+      "estimatedCost": null,
+      "samples": 1
+    },
+    "mr-IN": {
+      "ocrCer": null,
+      "ocrWer": null,
+      "languageAccuracy": null,
+      "extractionAccuracy": null,
+      "numericAccuracy": null,
+      "evidenceCoverage": null,
+      "answerAccuracy": null,
+      "faithfulness": null,
+      "locatorRecall": 1,
+      "normalizationAccuracy": 1,
+      "checkerRecall": 1,
+      "checkerFalseAlarm": 0,
+      "sampleSuccessRate": 1,
+      "latencyP50Ms": 0,
+      "latencyP95Ms": 0,
+      "estimatedCost": null,
+      "samples": 1
+    }
+  },
+  "failureCounts": {},
+  "samples": [
+    {
+      "sampleId": "bank-001",
+      "category": "bank_notice",
+      "language": "en-IN",
+      "synthetic": true,
+      "ok": true,
+      "latencyMs": {
+        "total": 25
+      },
+      "metrics": {
+        "locatorRecall": 1,
+        "normalizationAccuracy": 1,
+        "checkerRecall": 1,
+        "checkerFalseAlarm": 0
+      },
+      "failures": []
+    },
+    {
+      "sampleId": "elec-001",
+      "category": "electricity_bill",
+      "language": "en-IN",
+      "synthetic": true,
+      "ok": true,
+      "latencyMs": {
+        "total": 1
+      },
+      "metrics": {
+        "locatorRecall": 1,
+        "normalizationAccuracy": 1,
+        "checkerRecall": 1,
+        "checkerFalseAlarm": 0
+      },
+      "failures": []
+    },
+    {
+      "sampleId": "hi-text-001",
+      "category": "water_bill",
+      "language": "hi-IN",
+      "synthetic": true,
+      "ok": true,
+      "latencyMs": {
+        "total": 1
+      },
+      "metrics": {
+        "locatorRecall": 1,
+        "normalizationAccuracy": 1,
+        "checkerRecall": 1,
+        "checkerFalseAlarm": 0
+      },
+      "failures": []
+    },
+    {
+      "sampleId": "mr-text-001",
+      "category": "government_notice",
+      "language": "mr-IN",
+      "synthetic": true,
+      "ok": true,
+      "latencyMs": {
+        "total": 0
+      },
+      "metrics": {
+        "locatorRecall": 1,
+        "normalizationAccuracy": 1,
+        "checkerRecall": 1,
+        "checkerFalseAlarm": 0
+      },
+      "failures": []
+    },
+    {
+      "sampleId": "rx-001",
+      "category": "prescription",
+      "language": "en-IN",
+      "synthetic": true,
+      "ok": true,
+      "latencyMs": {
+        "total": 0
+      },
+      "metrics": {
+        "locatorRecall": 1,
+        "normalizationAccuracy": 1,
+        "checkerRecall": 1,
+        "checkerFalseAlarm": 0
+      },
+      "failures": []
+    }
+  ],
+  "pipeline": {
+    "checker": "evidence + faithfulness heuristics (no model calls)"
+  },
+  "error": null
+}

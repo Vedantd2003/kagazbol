@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "feature/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # The repo intentionally has no lockfile (see 996ce85); match Render's install.
+      - run: npm install --legacy-peer-deps
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - run: npm test
+      # Deterministic evaluation of the verification layer. No provider credentials,
+      # no model calls, no cost. Fails the build if any seed sample regresses.
+      - run: npm run eval
+      - run: npm run build

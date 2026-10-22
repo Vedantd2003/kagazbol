@@ -1,0 +1,24 @@
+{
+  "id": "elec-001",
+  "synthetic": true,
+  "category": "electricity_bill",
+  "sourceLanguage": "en-IN",
+  "image": "public/samples/electricity-bill.png",
+  "referenceOcr": "Maharashtra State Electricity Distribution Co. Ltd.\nमहाराष्ट्र राज्य वीज वितरण कंपनी मर्यादित (MSEDCL)\nBill of Supply / वीज देयक\nConsumer Name: Ramesh Kumar Patil\nConsumer No: 1234 5678 9012\nAddress: Flat 12, Shivaji Nagar, Pune - 411005\nBilling Period: 01 May 2026 - 31 May 2026\nUnits Consumed: 210 kWh\nBill Date: 05-06-2026\nTotal Amount Payable / एकूण देय रक्कम\nRs. 1,840.00\nDue Date / अंतिम तारीख\n21 June 2026\nA late payment surcharge of 2% will be applied if the bill is not paid by the due date.\nFor complaints, call the toll-free helpline: 1800-102-3435.\nThis is a computer-generated bill and does not require a signature. (Sample/fictional document for demo purposes.)",
+  "expected": {
+    "documentType": "electricity_bill",
+    "amounts": [{ "label": "Total amount payable", "value": "Rs. 1,840.00" }],
+    "dates": [{ "label": "Bill date", "value": "05-06-2026" }, { "label": "Due date", "value": "21 June 2026" }],
+    "deadline": "21 June 2026",
+    "fields": [
+      { "name": "consumer_name", "type": "name", "value": "Ramesh Kumar Patil" },
+      { "name": "consumer_number", "type": "id", "value": "1234 5678 9012" }
+    ]
+  },
+  "qa": [
+    { "question": "How much do I have to pay?", "answer": "Rs. 1,840.00", "answerType": "amount", "evidence": ["Rs. 1,840.00"] },
+    { "question": "What is the last date to pay?", "answer": "21 June 2026", "answerType": "date", "evidence": ["21 June 2026"] },
+    { "question": "बिल उशिरा भरलं तर काय होईल?", "answer": "2% late payment surcharge", "answerType": "text", "evidence": ["A late payment surcharge of 2% will be applied"] }
+  ],
+  "notes": "Rendered by scripts/generate-samples.ts. Reference OCR is the exact text drawn in the image, in reading order."
+}
