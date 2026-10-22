@@ -77,6 +77,28 @@ async function testTts(): Promise<string | null> {
   return b64 ?? null;
 }
 
+/** Current docs name the TTS field `language_code`; the app was first verified with `target_language_code`. Check both. */
+async function testTtsFieldNames() {
+  console.log("\n--- TTS language field name check ---");
+  for (const field of ["target_language_code", "language_code"]) {
+    const res = await fetch(`${API_BASE}/text-to-speech`, {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ text: "नमस्कार", [field]: "mr-IN", model: "bulbul:v3", speaker: "priya" }),
+    });
+    console.log(`${field}: status=${res.status}`);
+  }
+}
+
+async function testTextLid() {
+  console.log("\n--- Text language identification ---");
+  for (const [expected, input] of [["hi-IN", "आपको बिल की राशि अंतिम तारीख से पहले भरनी है"], ["mr-IN", "तुम्हाला बिल शेवटच्या तारखेपूर्वी भरायचे आहे"], ["en-IN", "Please pay the bill before the due date"]]) {
+    const res = await fetch(`${API_BASE}/text-lid`, { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify({ input }) });
+    const data = (await res.json()) as { language_code?: string; script_code?: string };
+    console.log(`status=${res.status} expected=${expected} got=${data.language_code} script=${data.script_code}`);
+  }
+}
+
 async function testStt(audioBase64: string | null) {
   console.log("\n--- Speech-to-Text (Saaras) ---");
   if (!audioBase64) {
@@ -179,9 +201,11 @@ async function testDocIntelligence() {
 
 async function main() {
   await testChat("sarvam-105b", "flagship");
-  await testChat("sarvam-30b", "conversational");
+  await testChat("sarvam-105b-conversations", "conversational");
   const audio = await testTts();
   await testStt(audio);
+  await testTtsFieldNames();
+  await testTextLid();
   await testDocIntelligence();
   console.log(
     "\nDone. Review status codes/output above against src/lib/sarvam/* before relying on them.\n" +

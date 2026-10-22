@@ -1,323 +1,89 @@
 /**
- * KagazBol Evaluation Runner
- * Run via: npm run eval
+ * KagazBol evaluation CLI.
  *
- * - Reads eval/data/ documents (skips eval/samples/)
- * - For each: OCR (cached) → summarize → QA
- * - Scores with metrics.ts
- * - Writes eval/results/<timestamp>.json and docs/EVAL.md
+ *   npm run eval                       # checks mode on eval/datasets/seed (free, deterministic; used in CI)
+ *   npm run eval -- --live             # real Sarvam pipeline (needs SARVAM_API_KEY; costs money)
+ *   npm run eval -- --dataset=mydata   # another dataset under eval/datasets/
+ *   npm run eval -- --live --commit    # also save to eval/results-committed/ so the dashboard shows it after deploy
+ *
+ * Exit code is 1 if any sample fails in checks mode (CI gate). Live runs never fail CI.
  */
-
-import * as fs from "fs";
-import * as path from "path";
 import * as dotenv from "dotenv";
-import { scoreField, findHallucinatedValues } from "./metrics";
+import path from "path";
+import { loadDataset } from "../src/lib/eval/dataset";
+import { runEvaluation } from "../src/lib/eval/runner";
+import { saveRun } from "../src/lib/eval/store";
+import { createLiveDeps, loadPricing, LIVE_PIPELINE } from "../src/lib/eval/live";
+import type { EvalRun, RunMetrics } from "../src/lib/eval/types";
 
 dotenv.config();
 
-const BASE_URL = process.env.EVAL_BASE_URL ?? "http://localhost:3000";
-const EVAL_DATA_DIR = path.join(process.cwd(), "eval", "data");
-const EVAL_CACHE_DIR = path.join(process.cwd(), "eval", "cache");
-const RESULTS_DIR = path.join(process.cwd(), "eval", "results");
-const DOCS_DIR = path.join(process.cwd(), "docs");
+const args = new Map(process.argv.slice(2).map((a) => {
+  const [k, v] = a.replace(/^--/, "").split("=");
+  return [k, v ?? "true"] as const;
+}));
 
-interface LabelField {
-  name: string;
-  type: "amount" | "date" | "name" | "id" | "text";
-  value: string;
-}
+const pct = (v: number | null) => (v == null ? "not measured" : `${(v * 100).toFixed(1)}%`);
+const num = (v: number | null, d = 3) => (v == null ? "not measured" : v.toFixed(d));
 
-interface QAPair {
-  question: string;
-  answer: string;
-  supporting_text: string;
-}
-
-interface Labels {
-  doc_id: string;
-  doc_type: string;
-  language: "en-IN" | "hi-IN" | "mr-IN";
-  is_synthetic?: boolean;
-  fields: LabelField[];
-  qa_pairs: QAPair[];
-}
-
-interface QAResult {
-  question: string;
-  expected: string;
-  predicted: string;
-  exact: boolean;
-  fuzzy: boolean;
-  score: number;
-  hallucinations: string[];
-}
-
-interface DocResult {
-  doc_id: string;
-  doc_type: string;
-  language: string;
-  qaResults: QAResult[];
-  avgScore: number;
-  hallucinationCount: number;
-}
-
-async function getOcr(docId: string, imagePath: string, language: string): Promise<string> {
-  const cacheFile = path.join(EVAL_CACHE_DIR, `${docId}.ocr.txt`);
-
-  if (fs.existsSync(cacheFile)) {
-    return fs.readFileSync(cacheFile, "utf-8");
-  }
-
-  // Upload image for OCR
-  const imageBuffer = fs.readFileSync(imagePath);
-  const form = new FormData();
-  const blob = new Blob([imageBuffer], { type: "image/jpeg" });
-  form.append("file", blob, path.basename(imagePath));
-  form.append("language", language);
-
-  const startRes = await fetch(`${BASE_URL}/api/parse/start`, {
-    method: "POST",
-    body: form,
-  });
-
-  if (!startRes.ok) {
-    throw new Error(`Parse start failed: ${startRes.status}`);
-  }
-
-  const { jobId } = (await startRes.json()) as { jobId: string };
-
-  // Poll for completion
-  const deadline = Date.now() + 120_000;
-  while (Date.now() < deadline) {
-    await new Promise((r) => setTimeout(r, 3000));
-    const statusRes = await fetch(`${BASE_URL}/api/parse/status?jobId=${encodeURIComponent(jobId)}`);
-    const status = (await statusRes.json()) as { state: string };
-    if (status.state === "Completed" || status.state === "PartiallyCompleted") break;
-    if (status.state === "Failed") throw new Error(`OCR failed for ${docId}`);
-  }
-
-  const resultRes = await fetch(`${BASE_URL}/api/parse/result?jobId=${encodeURIComponent(jobId)}`);
-  const { ocrText } = (await resultRes.json()) as { ocrText: string };
-
-  // Cache result
-  fs.mkdirSync(EVAL_CACHE_DIR, { recursive: true });
-  fs.writeFileSync(cacheFile, ocrText, "utf-8");
-
-  return ocrText;
-}
-
-async function runQA(
-  ocrText: string,
-  language: string,
-  question: string
-): Promise<string> {
-  const res = await fetch(`${BASE_URL}/api/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      ocrText,
-      summary: {
-        document_type: "Document",
-        title: "Document",
-        key_facts: [],
-        amounts: [],
-        dates: [],
-        deadline: null,
-        action_required: "See document",
-        summary_spoken: "Document loaded.",
-      },
-      language,
-      history: [],
-      question,
-    }),
-  });
-
-  const data = (await res.json()) as { answer?: string; error?: string };
-  return data.answer ?? data.error ?? "(no answer)";
-}
-
-async function evalDoc(docDir: string): Promise<DocResult | null> {
-  const labelsPath = path.join(docDir, "labels.json");
-  if (!fs.existsSync(labelsPath)) return null;
-
-  const labels = JSON.parse(fs.readFileSync(labelsPath, "utf-8")) as Labels;
-
-  // Find image
-  const imageExts = ["jpg", "jpeg", "png", "webp"];
-  let imagePath: string | null = null;
-  for (const ext of imageExts) {
-    const p = path.join(docDir, `image.${ext}`);
-    if (fs.existsSync(p)) { imagePath = p; break; }
-  }
-
-  if (!imagePath) {
-    console.log(`  Skipping ${labels.doc_id}: no image found`);
-    return null;
-  }
-
-  console.log(`  Processing ${labels.doc_id} (${labels.doc_type}, ${labels.language})`);
-
-  let ocrText: string;
-  try {
-    ocrText = await getOcr(labels.doc_id, imagePath, labels.language);
-  } catch (err) {
-    console.error(`  OCR failed for ${labels.doc_id}:`, err);
-    return null;
-  }
-
-  const qaResults: QAResult[] = [];
-
-  for (const qa of labels.qa_pairs) {
-    let predicted: string;
-    try {
-      predicted = await runQA(ocrText, labels.language, qa.question);
-    } catch {
-      predicted = "(error)";
-    }
-
-    // Score against expected answer
-    const field = labels.fields.find((f) =>
-      qa.supporting_text.toLowerCase().includes(f.value.toLowerCase())
-    );
-    const fieldType = field?.type ?? "text";
-    const { exact, fuzzy, score } = scoreField(predicted, qa.answer, fieldType);
-    const hallucinations = findHallucinatedValues(predicted, ocrText);
-
-    qaResults.push({
-      question: qa.question,
-      expected: qa.answer,
-      predicted,
-      exact,
-      fuzzy,
-      score,
-      hallucinations,
-    });
-  }
-
-  const avgScore =
-    qaResults.length > 0
-      ? qaResults.reduce((s, r) => s + r.score, 0) / qaResults.length
-      : 0;
-
-  return {
-    doc_id: labels.doc_id,
-    doc_type: labels.doc_type,
-    language: labels.language,
-    qaResults,
-    avgScore,
-    hallucinationCount: qaResults.reduce((s, r) => s + r.hallucinations.length, 0),
-  };
-}
-
-function generateEvalMd(results: DocResult[]): string {
-  if (results.length === 0) {
-    return `# KagazBol Evaluation Results
-
-> Run \`npm run eval\` with real masked documents in \`eval/data/\` to populate this table.
-> Synthetic samples in \`eval/samples/\` are excluded from all numbers below.
-
-## Dataset
-- Documents: 0 (add masked real documents to \`eval/data/\`)
-
-## Results
-No results yet.
-`;
-  }
-
-  const byType: Record<string, DocResult[]> = {};
-  const byLang: Record<string, DocResult[]> = {};
-
-  for (const r of results) {
-    byType[r.doc_type] = [...(byType[r.doc_type] ?? []), r];
-    byLang[r.language] = [...(byLang[r.language] ?? []), r];
-  }
-
-  const overallAvg = results.reduce((s, r) => s + r.avgScore, 0) / results.length;
-  const totalHallucinations = results.reduce((s, r) => s + r.hallucinationCount, 0);
-
-  const worstCases = results
-    .flatMap((r) => r.qaResults.map((qa) => ({ ...qa, doc_id: r.doc_id })))
-    .sort((a, b) => a.score - b.score)
-    .slice(0, 10);
-
-  return `# KagazBol Evaluation Results
-
-> Synthetic samples in \`eval/samples/\` are excluded from all numbers below.
-> Run \`npm run eval\` to regenerate.
-
-## Dataset
-- Documents: ${results.length}
-- By type: ${Object.entries(byType).map(([t, r]) => `${t} ${r.length}`).join(", ")}
-- By language: ${Object.entries(byLang).map(([l, r]) => `${l} ${r.length}`).join(", ")}
-
-## Results
-
-| Document | Type | Language | Avg Score | Hallucinations |
-|---|---|---|---|---|
-${results.map((r) => `| ${r.doc_id} | ${r.doc_type} | ${r.language} | ${(r.avgScore * 100).toFixed(1)}% | ${r.hallucinationCount} |`).join("\n")}
-
-**Overall average score:** ${(overallAvg * 100).toFixed(1)}%
-**Total hallucinations detected:** ${totalHallucinations}
-
-## Failure Analysis
-
-Top ${worstCases.length} worst answers:
-
-${worstCases
-  .map(
-    (c, i) => `### ${i + 1}. ${c.doc_id}: "${c.question}"
-- Expected: ${c.expected}
-- Predicted: ${c.predicted}
-- Score: ${(c.score * 100).toFixed(1)}%
-${c.hallucinations.length > 0 ? `- Hallucinations: ${c.hallucinations.join(", ")}` : ""}`
-  )
-  .join("\n\n")}
-`;
+function printMetrics(m: RunMetrics) {
+  const rows: [string, string][] = [
+    ["OCR CER (lower is better)", num(m.ocrCer)],
+    ["OCR WER (lower is better)", num(m.ocrWer)],
+    ["Language detection accuracy", pct(m.languageAccuracy)],
+    ["Field extraction accuracy", pct(m.extractionAccuracy)],
+    ["Amount extraction accuracy", pct(m.numericAccuracy)],
+    ["Evidence coverage", pct(m.evidenceCoverage)],
+    ["Answer accuracy", pct(m.answerAccuracy)],
+    ["Answers with supporting evidence", pct(m.faithfulness)],
+    ["Evidence locator recall", pct(m.locatorRecall)],
+    ["Value normalisation accuracy", pct(m.normalizationAccuracy)],
+    ["Checker catch rate (planted errors)", pct(m.checkerRecall)],
+    ["Checker false alarms", pct(m.checkerFalseAlarm)],
+    ["Samples with no failures", pct(m.sampleSuccessRate)],
+    ["Latency p50 / p95 (ms)", `${m.latencyP50Ms ?? "–"} / ${m.latencyP95Ms ?? "–"}`],
+    ["Estimated cost", m.estimatedCost ? `${m.estimatedCost.amount} ${m.estimatedCost.currency}` : "Unavailable"],
+  ];
+  for (const [k, v] of rows) console.log(`  ${k.padEnd(38)} ${v}`);
 }
 
 async function main() {
-  fs.mkdirSync(EVAL_CACHE_DIR, { recursive: true });
-  fs.mkdirSync(RESULTS_DIR, { recursive: true });
-  fs.mkdirSync(DOCS_DIR, { recursive: true });
+  const live = args.has("live");
+  const dataset = args.get("dataset") ?? "seed";
+  if (live && !process.env.SARVAM_API_KEY) {
+    console.error("--live needs SARVAM_API_KEY. Nothing was run.");
+    process.exit(2);
+  }
+  const samples = await loadDataset(dataset);
+  const id = `${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-").toLowerCase()}-cli${live ? "-live" : "-checks"}`;
+  console.log(`Running ${live ? "LIVE" : "checks"} evaluation on "${dataset}" (${samples.length} samples${samples.every((s) => s.synthetic) ? ", all synthetic" : ""})…`);
 
-  if (!fs.existsSync(EVAL_DATA_DIR)) {
-    console.log("No eval/data/ directory found. Creating template docs/EVAL.md.");
-    fs.writeFileSync(path.join(DOCS_DIR, "EVAL.md"), generateEvalMd([]));
-    return;
+  const run: EvalRun = await runEvaluation({
+    id,
+    mode: live ? "live" : "checks",
+    datasetId: dataset,
+    samples,
+    deps: live ? createLiveDeps() : undefined,
+    pricing: live ? loadPricing() : null,
+    pipeline: live ? LIVE_PIPELINE : { checker: "evidence + faithfulness heuristics (no model calls)" },
+    onProgress: (r) => process.stdout.write(`\r  ${r.progress.done}/${r.progress.total}`),
+  });
+  console.log("\n");
+  if (run.metrics) printMetrics(run.metrics);
+
+  const failures = run.samples.flatMap((s) => s.failures.map((f) => ({ sample: s.sampleId, ...f })));
+  if (failures.length) {
+    console.log(`\n${failures.length} failure(s):`);
+    for (const f of failures.slice(0, 40)) console.log(`  [${f.sample}] ${f.stage}/${f.category}: expected ${f.expected} · got ${f.actual} — ${f.detail}`);
   }
 
-  const entries = fs.readdirSync(EVAL_DATA_DIR, { withFileTypes: true });
-  const docDirs = entries
-    .filter((e) => e.isDirectory())
-    .map((e) => path.join(EVAL_DATA_DIR, e.name));
-
-  if (docDirs.length === 0) {
-    console.log("No documents in eval/data/. Writing empty EVAL.md.");
-    fs.writeFileSync(path.join(DOCS_DIR, "EVAL.md"), generateEvalMd([]));
-    return;
-  }
-
-  console.log(`Found ${docDirs.length} documents in eval/data/`);
-
-  const results: DocResult[] = [];
-  for (const dir of docDirs) {
-    const result = await evalDoc(dir);
-    if (result) results.push(result);
-  }
-
-  // Write timestamped JSON
-  const ts = new Date().toISOString().replace(/[:.]/g, "-");
-  const jsonPath = path.join(RESULTS_DIR, `${ts}.json`);
-  fs.writeFileSync(jsonPath, JSON.stringify(results, null, 2));
-  console.log(`Results written to ${jsonPath}`);
-
-  // Write docs/EVAL.md
-  const mdPath = path.join(DOCS_DIR, "EVAL.md");
-  fs.writeFileSync(mdPath, generateEvalMd(results));
-  console.log(`EVAL.md written to ${mdPath}`);
+  await saveRun(run, path.join(process.cwd(), "eval", "results"));
+  if (args.has("commit")) await saveRun(run, path.join(process.cwd(), "eval", "results-committed"));
+  console.log(`\nSaved run ${run.id}.`);
+  if (!live && failures.length) process.exit(1);
 }
 
 main().catch((err) => {
-  console.error("eval runner error:", err);
+  console.error(err instanceof Error ? err.message : err);
   process.exit(1);
 });

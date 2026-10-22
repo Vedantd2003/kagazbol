@@ -1,14 +1,46 @@
-import type { AppLanguage } from "./sarvam/config";
+import type { AppLanguage } from "./languages";
+import type { ErrorCode } from "./errors";
 import type {
   ChatRequest,
   ChatResponse,
   ChatTurn,
+  DetectLanguageResponse,
   DocumentSummary,
+  ExplainResponse,
   ParseResultResponse,
   ParseStartResponse,
   ParseStatusResponse,
+  SttResponse,
   SummarizeResponse,
 } from "./types";
+
+/** Error returned by a KagazBol API route, with the server's stable code. */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly code: ErrorCode | "NETWORK",
+    readonly status: number,
+    readonly retryable: boolean
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+function toApiError(status: number, data: unknown): ApiError {
+  const d = (data ?? {}) as { error?: unknown; message?: unknown; code?: unknown; retryable?: unknown };
+  const message = typeof d.message === "string" ? d.message : typeof d.error === "string" ? d.error : "Request failed";
+  return new ApiError(message, (typeof d.code === "string" ? d.code : "INTERNAL") as ErrorCode, status, d.retryable === true);
+}
+
+async function request(input: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(input, init);
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") throw err;
+    throw new ApiError("Network error", "NETWORK", 0, true);
+  }
+}
 
 /** Thrown when the OCR polling loop exceeds its time budget. */
 export class PollingTimeoutError extends Error {
@@ -19,10 +51,13 @@ export class PollingTimeoutError extends Error {
 }
 
 async function asJson<T>(res: Response): Promise<T> {
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error((data as { error?: string }).error || "Request failed");
+  let data: unknown = null;
+  try {
+    data = await res.json();
+  } catch {
+    // non-JSON (e.g. proxy error page)
   }
+  if (!res.ok) throw toApiError(res.status, data);
   return data as T;
 }
 
@@ -52,18 +87,16 @@ export function startParse(
     }
 
     xhr.onload = () => {
+      let data: unknown = null;
       try {
-        const data = JSON.parse(xhr.responseText) as ParseStartResponse & { error?: string };
-        if (xhr.status >= 200 && xhr.status < 300) {
-          resolve(data);
-        } else {
-          reject(new Error(data.error || `Upload failed (${xhr.status})`));
-        }
+        data = JSON.parse(xhr.responseText);
       } catch {
-        reject(new Error(`Upload failed (${xhr.status})`));
+        // fall through
       }
+      if (xhr.status >= 200 && xhr.status < 300 && data) resolve(data as ParseStartResponse);
+      else reject(toApiError(xhr.status, data));
     };
-    xhr.onerror = () => reject(new Error("Network error during upload"));
+    xhr.onerror = () => reject(new ApiError("Network error during upload", "NETWORK", 0, true));
     xhr.onabort = () => reject(new DOMException("Upload aborted", "AbortError"));
 
     opts.signal?.addEventListener("abort", () => xhr.abort(), { once: true });
@@ -76,13 +109,13 @@ export function startParse(
   });
 }
 
-export async function getParseStatus(jobId: string): Promise<ParseStatusResponse> {
-  const res = await fetch(`/api/parse/status?jobId=${encodeURIComponent(jobId)}`);
+export async function getParseStatus(jobId: string, signal?: AbortSignal): Promise<ParseStatusResponse> {
+  const res = await request(`/api/parse/status?jobId=${encodeURIComponent(jobId)}`, { signal });
   return asJson(res);
 }
 
-export async function getParseResult(jobId: string): Promise<ParseResultResponse> {
-  const res = await fetch(`/api/parse/result?jobId=${encodeURIComponent(jobId)}`);
+export async function getParseResult(jobId: string, signal?: AbortSignal): Promise<ParseResultResponse> {
+  const res = await request(`/api/parse/result?jobId=${encodeURIComponent(jobId)}`, { signal });
   return asJson(res);
 }
 
@@ -91,7 +124,7 @@ export async function summarizeDocument(
   language: AppLanguage,
   signal?: AbortSignal
 ): Promise<SummarizeResponse> {
-  const res = await fetch("/api/summarize", {
+  const res = await request("/api/summarize", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ocrText, language }),
@@ -109,7 +142,7 @@ export async function askQuestion(
   signal?: AbortSignal
 ): Promise<ChatResponse> {
   const body: ChatRequest = { ocrText, summary, language, history, question };
-  const res = await fetch("/api/chat", {
+  const res = await request("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -123,7 +156,7 @@ export async function speakText(
   language: AppLanguage,
   signal?: AbortSignal
 ): Promise<string> {
-  const res = await fetch("/api/tts", {
+  const res = await request("/api/tts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text, language }),
@@ -133,12 +166,37 @@ export async function speakText(
   return data.audioUrl;
 }
 
-export async function transcribeAudio(blob: Blob): Promise<string> {
+export async function transcribeAudio(blob: Blob, signal?: AbortSignal): Promise<SttResponse> {
   const form = new FormData();
   form.append("audio", blob, "question.webm");
-  const res = await fetch("/api/stt", { method: "POST", body: form });
-  const data = await asJson<{ transcript: string }>(res);
-  return data.transcript;
+  const res = await request("/api/stt", { method: "POST", body: form, signal });
+  return asJson<SttResponse>(res);
+}
+
+export async function detectDocumentLanguage(text: string, signal?: AbortSignal): Promise<DetectLanguageResponse> {
+  const res = await request("/api/detect-language", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text: text.slice(0, 20_000) }),
+    signal,
+  });
+  return asJson(res);
+}
+
+export async function explainSimply(
+  text: string,
+  context: string | null,
+  language: AppLanguage,
+  withExample: boolean,
+  signal?: AbortSignal
+): Promise<ExplainResponse> {
+  const res = await request("/api/explain", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, context, language, withExample }),
+    signal,
+  });
+  return asJson(res);
 }
 
 /**
@@ -170,7 +228,7 @@ export async function waitForParseCompletion(
       throw new DOMException("Polling aborted", "AbortError");
     }
 
-    const status = await getParseStatus(jobId);
+    const status = await getParseStatus(jobId, signal);
     onPoll?.(status.state);
 
     if (terminal.has(status.state)) {

@@ -1,31 +1,29 @@
 import { NextResponse } from "next/server";
 import { downloadDocResultText } from "@/lib/sarvam/docIntelligence";
-import { SarvamApiError } from "@/lib/sarvam/client";
+import { toAppError } from "@/lib/sarvam/client";
+import { AppError } from "@/lib/errors";
+import { enforceRateLimit, errorResponse } from "@/lib/http";
+import { RATE_LIMITS } from "@/lib/rateLimit";
+import { parseJobId } from "@/lib/validation";
+import { assessOcrText, QUALITY_HINTS } from "@/lib/quality";
 
 export const runtime = "nodejs";
 
-/** Called once a job's status is Completed/PartiallyCompleted to fetch OCR text. */
+/** Called once a job is Completed/PartiallyCompleted to fetch the OCR text. */
 export async function GET(request: Request) {
-  const jobId = new URL(request.url).searchParams.get("jobId");
-  if (!jobId) {
-    return NextResponse.json({ error: "Missing jobId" }, { status: 400 });
-  }
-
   try {
-    const ocrText = await downloadDocResultText(jobId);
-    if (!ocrText) {
-      return NextResponse.json(
-        { error: "We couldn't read any text from this document. Try a clearer photo." },
-        { status: 422 }
-      );
+    enforceRateLimit(request, RATE_LIMITS.poll);
+    const jobId = parseJobId(new URL(request.url).searchParams.get("jobId"));
+    let ocrText: string;
+    try {
+      ocrText = await downloadDocResultText(jobId);
+    } catch (err) {
+      throw toAppError(err, "OCR_FAILED");
     }
-    return NextResponse.json({ ocrText });
+    const quality = assessOcrText(ocrText);
+    if (quality.issues.includes("empty_text")) throw new AppError("LOW_QUALITY");
+    return NextResponse.json({ ocrText, qualityIssues: quality.issues, qualityWarnings: quality.issues.map((i) => QUALITY_HINTS[i]) });
   } catch (err) {
-    if (err instanceof SarvamApiError) {
-      console.error("Sarvam API error in parse/result:", err.status, err.body);
-      return NextResponse.json({ error: `Sarvam API error: ${err.message}` }, { status: 502 });
-    }
-    console.error("parse/result error", err);
-    return NextResponse.json({ error: `Something went wrong: ${err instanceof Error ? err.message : 'Unknown error'}` }, { status: 500 });
+    return errorResponse(err, "parse/result");
   }
 }

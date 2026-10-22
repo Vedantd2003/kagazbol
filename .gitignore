@@ -49,3 +49,8 @@ eval/data/
 eval/cache/
 eval/results/
 package-lock.json
+
+# e2e artifacts and local eval run store
+/test-results/
+/playwright-report/
+/.data/

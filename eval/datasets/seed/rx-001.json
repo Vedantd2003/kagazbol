@@ -1,0 +1,23 @@
+{
+  "id": "rx-001",
+  "synthetic": true,
+  "category": "prescription",
+  "sourceLanguage": "en-IN",
+  "image": "public/samples/prescription.png",
+  "referenceOcr": "Dr. Anjali Deshmukh, MBBS, MD (Medicine)\nSunrise Family Clinic, FC Road, Pune\nReg. No. MH-998877 | Phone: 020-12345678\nDate: 08 June 2026\nPatient Name: सुनिता राव (Sunita Rao)\nAge / Gender: 58 years / Female\nRx\n1. Tab. Metformin 500mg\n1 tablet morning - 0 - 1 tablet night, after food, for 30 days\n2. Tab. Amlodipine 5mg\n1 tablet every morning, for 30 days\n3. Cap. Pantoprazole 40mg\n1 capsule before breakfast, empty stomach, for 30 days\nAdvice\n- Low salt, low sugar diet\n- 30 minutes brisk walk daily\n- Check fasting blood sugar before next visit\nFollow-up Date\n08 July 2026\nSample/fictional prescription for demo purposes only. Not for actual medical use.",
+  "expected": {
+    "documentType": "prescription",
+    "amounts": [],
+    "dates": [{ "label": "Prescription date", "value": "08 June 2026" }, { "label": "Follow-up", "value": "08 July 2026" }],
+    "deadline": "08 July 2026",
+    "fields": [
+      { "name": "doctor", "type": "name", "value": "Dr. Anjali Deshmukh" },
+      { "name": "registration_number", "type": "id", "value": "MH-998877" }
+    ]
+  },
+  "qa": [
+    { "question": "When should Pantoprazole be taken?", "answer": "before breakfast, empty stomach", "answerType": "text", "evidence": ["1 capsule before breakfast, empty stomach, for 30 days"] },
+    { "question": "When is the follow-up visit?", "answer": "08 July 2026", "answerType": "date", "evidence": ["08 July 2026"] }
+  ],
+  "notes": "Fictional prescription. Medicines and dosages are rendered text, not medical guidance."
+}

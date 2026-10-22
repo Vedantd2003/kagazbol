@@ -1,0 +1,23 @@
+{
+  "id": "bank-001",
+  "synthetic": true,
+  "category": "bank_notice",
+  "sourceLanguage": "en-IN",
+  "image": "public/samples/bank-notice.png",
+  "referenceOcr": "Bank of Maharashtra\nFC Road Branch, Pune - 411004\nSubject: Minimum Balance Shortfall Notice\nसूचना: न्यूनतम शिल्लक रकमेची कमतरता\nAccount Holder: Vikram Joshi\nAccount Number: XXXXXXXX4521 (Savings)\nNotice Date: 09 June 2026\nDear Customer, your account balance has fallen below the\nrequired Average Monthly Balance (AMB) of Rs. 10,000.\nPenalty if balance is not restored / दंड शुल्क\nRs. 590.00\nRestore balance before / अंतिम तारीख\n30 June 2026\nTo avoid this penalty, please deposit funds to bring your balance above\nRs. 10,000 before the date mentioned above. Visit your nearest branch or use\nnet banking / mobile banking to transfer funds.\nThis is a sample/fictional notice for demo purposes only.",
+  "expected": {
+    "documentType": "bank_notice",
+    "amounts": [{ "label": "Penalty", "value": "Rs. 590.00" }, { "label": "Required average monthly balance", "value": "Rs. 10,000" }],
+    "dates": [{ "label": "Notice date", "value": "09 June 2026" }, { "label": "Restore before", "value": "30 June 2026" }],
+    "deadline": "30 June 2026",
+    "fields": [
+      { "name": "account_holder", "type": "name", "value": "Vikram Joshi" },
+      { "name": "account_number", "type": "id", "value": "XXXXXXXX4521" }
+    ]
+  },
+  "qa": [
+    { "question": "What is the penalty?", "answer": "Rs. 590.00", "answerType": "amount", "evidence": ["Rs. 590.00"] },
+    { "question": "By when must I restore the balance?", "answer": "30 June 2026", "answerType": "date", "evidence": ["30 June 2026"] }
+  ],
+  "notes": "Fictional notice with a masked account number."
+}
